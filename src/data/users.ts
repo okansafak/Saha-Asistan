@@ -2,7 +2,8 @@ export type UserRole = 'superadmin' | 'manager' | 'personel';
 
 export interface User {
   id: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   username?: string;
   role: UserRole;
   unit?: string; // Birim adı veya ID'si
@@ -17,5 +18,7 @@ export interface User {
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  // name alanı eski veriler için, yeni eklemelerde kullanılmaz
+  name?: string;
 }
 

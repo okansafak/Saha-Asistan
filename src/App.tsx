@@ -16,6 +16,7 @@ import type { Unit } from './data/units';
 import JobDelegate from './components/JobDelegate';
 import JobHistory from './components/JobHistory';
 import JobEditForm from './components/JobEditForm';
+import UserRow from './components/UserRow';
 
 function App() {
   const [forms, setForms] = React.useState<any[]>([]);
@@ -70,7 +71,9 @@ function App() {
                 users={users}
                 onAddUser={async user => {
                   try {
-                    await addUser(user);
+                    // user: Omit<User, 'id'>, may include legacy name field, but addUser expects first_name, last_name
+                    const { first_name, last_name, unit_id, username, password, role } = user as any;
+                    await addUser({ first_name, last_name, unit_id, username, password, role });
                     const updated = await fetchUsers();
                     setUsers(updated);
                   } catch (e) {
@@ -89,14 +92,34 @@ function App() {
               />
               <div className="mb-6">
                 <h2 className="font-bold text-lg mb-2">Kullanıcılar</h2>
-                <ul className="divide-y bg-white rounded-xl shadow">
-                  {users.map(u => (
-                    <li key={u.id} className="flex justify-between items-center px-4 py-2">
-                      <span>{u.name}</span>
-                      <span className="text-xs text-gray-500">{u.role}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white rounded-xl shadow text-sm">
+                    <thead>
+                      <tr className="bg-blue-50 text-blue-700">
+                        <th className="p-2 text-left">Ad</th>
+                        <th className="p-2 text-left">Soyad</th>
+                        <th className="p-2 text-left">Kullanıcı Adı</th>
+                        <th className="p-2 text-left">Rol</th>
+                        <th className="p-2 text-left">Birim</th>
+                        <th className="p-2 text-left">E-posta</th>
+                        <th className="p-2 text-left">Telefon</th>
+                        <th className="p-2 text-left">Durum</th>
+                        <th className="p-2 text-left">İşlem</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map(u => (
+                        <UserRow key={u.id} user={u} units={units} onUpdate={async (id, data) => {
+                          try {
+                            await import('./services/userApi').then(m => m.updateUser(id, data));
+                            const updated = await fetchUsers();
+                            setUsers(updated);
+                          } catch (e) {}
+                        }} />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </>
           )}
@@ -107,7 +130,8 @@ function App() {
                 users={users}
                 onAddUser={async user => {
                   try {
-                    const newUser = await addUser(user);
+                    const { first_name, last_name, unit_id, username, password, role } = user as any;
+                    const newUser = await addUser({ first_name, last_name, unit_id, username, password, role });
                     setUsers(prev => [...prev, newUser]);
                   } catch (e) {
                     // Hata yönetimi eklenebilir

@@ -1,4 +1,4 @@
-// (boş satır)
+
 import express from 'express';
 import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
@@ -6,11 +6,74 @@ import bcrypt from 'bcryptjs';
 export function createApiRouter(client: Client) {
   const router = express.Router();
 
+  // Kullanıcı güncelle
+  router.put('/users/:id', async (req, res) => {
+    const { id } = req.params;
+    // camelCase -> snake_case eşleştirme
+    const fieldMap: Record<string, string> = {
+      first_name: 'first_name',
+      last_name: 'last_name',
+      username: 'username',
+      role: 'role',
+      unit_id: 'unit_id',
+      email: 'email',
+      phone: 'phone',
+      gender: 'gender',
+      birthDate: 'birth_date',
+      address: 'address',
+      profileImageUrl: 'profile_image_url',
+      notes: 'notes',
+      is_active: 'is_active',
+    };
+    const updates = [];
+    const values = [];
+    let idx = 1;
+    for (const key in fieldMap) {
+      if (req.body[key] !== undefined) {
+        updates.push(`${fieldMap[key]} = $${idx}`);
+        values.push(req.body[key]);
+        idx++;
+      }
+    }
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Güncellenecek alan yok' });
+    }
+    values.push(id);
+    try {
+      const result = await client.query(
+        `UPDATE users SET ${updates.join(', ')}, updated_at = NOW() WHERE id = $${idx} RETURNING *`,
+        values
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      }
+      res.json(result.rows[0]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: 'Kullanıcı güncellenemedi', details: msg });
+    }
+  });
+
+  // Kullanıcı sil
+  router.delete('/users/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+      const result = await client.query('DELETE FROM users WHERE id = $1 RETURNING *', [id]);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      }
+      res.json({ success: true });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: 'Kullanıcı silinemedi', details: msg });
+    }
+  });
+
   // Kullanıcı ekle
   router.post('/users', async (req, res) => {
-    const { display_name, unit_id, username, password, role } = req.body;
-    if (!display_name || !unit_id || !username || !password || !role) {
-      return res.status(400).json({ error: 'display_name, unit_id, username, password ve role zorunludur' });
+    const { first_name, last_name, unit_id, username, password, role } = req.body;
+    if (!first_name || !last_name || !unit_id || !username || !password || !role) {
+      return res.status(400).json({ error: 'first_name, last_name, unit_id, username, password ve role zorunludur' });
     }
     try {
       // unit_id'nin geçerli olup olmadığını kontrol et
@@ -19,9 +82,9 @@ export function createApiRouter(client: Client) {
         return res.status(400).json({ error: `Geçerli bir birim bulunamadı: '${unit_id}'` });
       }
       // Aynı isim ve birimde kullanıcı var mı kontrolü
-      const exists = await client.query('SELECT id FROM users WHERE LOWER(display_name) = LOWER($1) AND unit_id = $2', [display_name, unit_id]);
+      const exists = await client.query('SELECT id FROM users WHERE LOWER(first_name) = LOWER($1) AND LOWER(last_name) = LOWER($2) AND unit_id = $3', [first_name, last_name, unit_id]);
       if (exists.rows.length > 0) {
-        return res.status(409).json({ error: 'Bu birimde aynı isimde kullanıcı zaten var' });
+        return res.status(409).json({ error: 'Bu birimde aynı ad ve soyad ile kullanıcı zaten var' });
       }
       // Duplicate check for username
       const existingUsername = await client.query('SELECT * FROM users WHERE username = $1', [username]);
@@ -32,8 +95,8 @@ export function createApiRouter(client: Client) {
       const bcrypt = require('bcryptjs');
       const password_hash = await bcrypt.hash(password, 10);
       const result = await client.query(
-        'INSERT INTO users (display_name, unit_id, username, password_hash, role) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [display_name, unit_id, username, password_hash, role]
+        'INSERT INTO users (first_name, last_name, unit_id, username, password_hash, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [first_name, last_name, unit_id, username, password_hash, role]
       );
       res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -66,7 +129,7 @@ export function createApiRouter(client: Client) {
 
   // Kullanıcılar
   router.get('/users', async (req, res) => {
-    const result = await client.query('SELECT id, username, display_name, role, unit_id FROM users');
+    const result = await client.query('SELECT id, username, first_name, last_name, role, unit_id, email, phone, is_active FROM users');
     res.json(result.rows);
   });
 

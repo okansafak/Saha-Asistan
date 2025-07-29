@@ -15,7 +15,8 @@ const AdminPanel: React.FC<Props> = ({ onAddUser, onAddUnit, units, users = [] }
   // Form seçimi
   const [formType, setFormType] = useState<'user' | 'unit'>('user');
   // Kullanıcı ekleme
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [userRole, setUserRole] = useState<UserRole>('personel');
@@ -51,16 +52,17 @@ const AdminPanel: React.FC<Props> = ({ onAddUser, onAddUnit, units, users = [] }
           <form className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-blue-50/60 p-6 rounded-2xl shadow" onSubmit={e => {
             e.preventDefault();
             setError(null);
-            if (!name || !userUnit || !username || !password) return setError('İsim, birim, kullanıcı adı ve şifre zorunlu!');
+            if (!firstName || !lastName || !userUnit || !username || !password) return setError('Ad, soyad, birim, kullanıcı adı ve şifre zorunlu!');
             if (!userRole) return setError('Rol seçimi zorunlu!');
             // Aynı isim ve birimde kullanıcı var mı?
             const exists = users.some(u =>
-              typeof u.name === 'string' && typeof u.unit === 'string' &&
-              u.name.trim().toLowerCase() === name.trim().toLowerCase() &&
+              typeof u.first_name === 'string' && typeof u.last_name === 'string' && typeof u.unit === 'string' &&
+              u.first_name.trim().toLowerCase() === firstName.trim().toLowerCase() &&
+              u.last_name.trim().toLowerCase() === lastName.trim().toLowerCase() &&
               u.unit === userUnit
             );
             if (exists) {
-              setError('Bu birimde aynı isimde bir kullanıcı zaten var!');
+              setError('Bu birimde aynı ad ve soyad ile bir kullanıcı zaten var!');
               return;
             }
             // Aynı kullanıcı adı var mı?
@@ -71,15 +73,17 @@ const AdminPanel: React.FC<Props> = ({ onAddUser, onAddUnit, units, users = [] }
             }
             // API'ye uygun payload
             onAddUser({
-              display_name: name,
+              first_name: firstName,
+              last_name: lastName,
               unit_id: userUnit,
               username,
               password,
               role: String(userRole)
-            } as any); // API'ye uygun şekilde gönder, local User tipinden farklı
-            setName(''); setUsername(''); setPassword(''); setUserRole('personel'); setUserUnit(''); setEmail(''); setPhone(''); setGender(undefined); setBirthDate(''); setAddress(''); setProfileImageUrl(''); setNotes(''); setIsActive(true);
+            } as any);
+            setFirstName(''); setLastName(''); setUsername(''); setPassword(''); setUserRole('personel'); setUserUnit(''); setEmail(''); setPhone(''); setGender(undefined); setBirthDate(''); setAddress(''); setProfileImageUrl(''); setNotes(''); setIsActive(true);
           }}>
-            <input className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 p-2 rounded-lg col-span-2 transition" placeholder="Ad Soyad" value={name} onChange={e=>setName(e.target.value)} />
+            <input className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 p-2 rounded-lg col-span-2 transition" placeholder="Ad" value={firstName} onChange={e=>setFirstName(e.target.value)} />
+            <input className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 p-2 rounded-lg col-span-2 transition" placeholder="Soyad" value={lastName} onChange={e=>setLastName(e.target.value)} />
             <input className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 p-2 rounded-lg col-span-2 transition" placeholder="Kullanıcı Adı" value={username} onChange={e=>setUsername(e.target.value)} autoComplete="username" />
             <input className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 p-2 rounded-lg col-span-2 transition" placeholder="Şifre" type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password" />
             <input className="border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 p-2 rounded-lg col-span-2 transition" placeholder="E-posta" value={email} onChange={e=>setEmail(e.target.value)} />

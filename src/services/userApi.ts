@@ -8,7 +8,7 @@ export async function fetchUsers(): Promise<User[]> {
   return res.json();
 }
 
-export async function addUser(user: { display_name: string; unit_id: string; username: string; password: string; role: string }) {
+export async function addUser(user: { first_name: string; last_name: string; unit_id: string; username: string; password: string; role: string }) {
   const res = await fetch(`${API_URL}/users`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
