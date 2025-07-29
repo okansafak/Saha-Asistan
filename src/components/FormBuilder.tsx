@@ -1,115 +1,129 @@
 import React, { useState } from 'react';
 
-export type FormFieldType = 'text' | 'number' | 'select' | 'radio' | 'checkbox' | 'date' | 'time' | 'photo' | 'signature' | 'rating' | 'yesno';
-
-export interface FormField {
-  id: string;
+interface Field {
   label: string;
-  type: FormFieldType;
-  options?: string[]; // select, radio, checkbox için
+  type: string;
+}
+
+interface Form {
+  id: string;
+  title: string;
+  fields: Field[];
 }
 
 interface Props {
-  forms: { id: string; title: string; fields: FormField[] }[];
-  onCreate: (form: { title: string; fields: FormField[] }) => void;
-  onUpdate: (id: string, form: { title: string; fields: FormField[] }) => void;
+  forms: Form[];
+  onCreate: (form: Omit<Form, 'id'>) => void;
+  onUpdate: (id: string, form: Partial<Form>) => void;
 }
 
-const fieldTypeLabels: Record<FormFieldType, string> = {
-  text: 'Metin',
-  number: 'Sayı',
-  select: 'Seçim Listesi',
-  radio: 'Tek Seçim',
-  checkbox: 'Çoklu Seçim',
-  date: 'Tarih',
-  time: 'Saat',
-  photo: 'Fotoğraf',
-  signature: 'İmza',
-  rating: 'Derecelendirme',
-  yesno: 'Evet/Hayır',
-};
-
+const fieldTypes = [
+  { value: 'text', label: 'Metin' },
+  { value: 'number', label: 'Sayı' },
+  { value: 'date', label: 'Tarih' },
+  { value: 'select', label: 'Seçim' },
+];
 
 const FormBuilder: React.FC<Props> = ({ forms, onCreate, onUpdate }) => {
-  const [formTitle, setFormTitle] = useState('');
-  const [fields, setFields] = useState<FormField[]>([]);
-  const [label, setLabel] = useState('');
-  const [type, setType] = useState<FormFieldType>('text');
-  const [options, setOptions] = useState('');
-  const [editId, setEditId] = useState<string | null>(null);
+  const [title, setTitle] = useState('');
+  const [fields, setFields] = useState<Field[]>([]);
+  const [fieldLabel, setFieldLabel] = useState('');
+  const [fieldType, setFieldType] = useState('text');
 
   const addField = () => {
-    if (!label) return;
-    setFields(prev => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        label,
-        type,
-        options: ['select', 'radio', 'checkbox'].includes(type) ? options.split(',').map(o=>o.trim()).filter(Boolean) : undefined,
-      },
-    ]);
-    setLabel('');
-    setType('text');
-    setOptions('');
+    if (fieldLabel) {
+      setFields([...fields, { label: fieldLabel, type: fieldType }]);
+      setFieldLabel('');
+      setFieldType('text');
+    }
+  };
+
+  const handleCreate = () => {
+    if (title && fields.length) {
+      onCreate({ title, fields });
+      setTitle('');
+      setFields([]);
+    }
   };
 
   return (
-    <div className="bg-white rounded shadow p-4 mb-6">
-      <h3 className="font-bold mb-2">{editId ? 'Formu Düzenle' : 'Yeni Form Oluştur'}</h3>
-      <div className="flex flex-col gap-2 mb-4">
-        <input className="border p-2 rounded font-bold" placeholder="Form Başlığı" value={formTitle} onChange={e=>setFormTitle(e.target.value)} />
+    <div className="max-w-2xl mx-auto w-full">
+      <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-blue-100">
+        <h2 className="text-xl font-bold text-blue-700 mb-4">Yeni Form Oluştur</h2>
+        <input
+          className="border border-blue-200 rounded-lg px-4 py-2 w-full mb-3 focus:ring-2 focus:ring-blue-400 outline-none"
+          placeholder="Form Başlığı"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+        />
+        <div className="mb-4">
+          <div className="font-semibold text-blue-600 mb-2">Form Alanları</div>
+          <div className="flex gap-2 mb-2">
+            <input
+              className="border border-blue-200 rounded-lg px-3 py-2 flex-1 focus:ring-2 focus:ring-blue-400 outline-none"
+              placeholder="Alan Başlığı"
+              value={fieldLabel}
+              onChange={e => setFieldLabel(e.target.value)}
+            />
+            <select
+              className="border border-blue-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+              value={fieldType}
+              onChange={e => setFieldType(e.target.value)}
+            >
+              {fieldTypes.map(ft => (
+                <option key={ft.value} value={ft.value}>{ft.label}</option>
+              ))}
+            </select>
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
+              type="button"
+              onClick={addField}
+            >
+              Alan Ekle
+            </button>
+          </div>
+          <ul className="space-y-1">
+            {fields.map((f, i) => (
+              <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
+                <span className="font-medium text-blue-700">{f.label}</span>
+                <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded text-xs">{f.type}</span>
+                <button
+                  className="ml-2 text-red-500 hover:text-red-700 text-xs"
+                  type="button"
+                  onClick={() => setFields(fields.filter((_, idx) => idx !== i))}
+                >Kaldır</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <button
+          className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700 transition disabled:opacity-50"
+          type="button"
+          onClick={handleCreate}
+          disabled={!title || !fields.length}
+        >
+          Formu Kaydet
+        </button>
+        <div className="text-xs text-gray-400 mt-4">
+          Not: Form doldurulurken atanacak kişi, dolduran kişi, birim vb. meta bilgiler otomatik olarak arkaplanda kaydedilecektir.
+        </div>
       </div>
-      <h4 className="font-semibold mb-2">Form Alanları</h4>
-      <div className="flex flex-col gap-2 mb-4">
-        <input className="border p-2 rounded" placeholder="Alan Başlığı" value={label} onChange={e=>setLabel(e.target.value)} />
-        <select className="border p-2 rounded" value={type} onChange={e=>setType(e.target.value as FormFieldType)}>
-          {Object.entries(fieldTypeLabels).map(([k,v])=>(<option key={k} value={k}>{v}</option>))}
-        </select>
-        {['select','radio','checkbox'].includes(type) && (
-          <input className="border p-2 rounded" placeholder="Seçenekler (virgülle ayır)" value={options} onChange={e=>setOptions(e.target.value)} />
-        )}
-        <button className="bg-blue-600 text-white py-2 rounded mt-2" type="button" onClick={addField}>Alan Ekle</button>
-      </div>
-      <ul className="mb-4">
-        {fields.map(f=>(
-          <li key={f.id} className="mb-1 flex items-center gap-2">
-            <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{fieldTypeLabels[f.type]}</span>
-            <span>{f.label}</span>
-            {f.options && <span className="text-xs text-gray-500">[{f.options.join(', ')}]</span>}
-            <button className="text-red-500 ml-2" onClick={()=>setFields(fields.filter(x=>x.id!==f.id))}>Sil</button>
-          </li>
-        ))}
-      </ul>
-      {editId ? (
-        <button className="bg-yellow-600 text-white px-4 py-2 rounded" disabled={fields.length===0 || !formTitle} onClick={()=>{
-          onUpdate(editId, { title: formTitle, fields });
-          setEditId(null); setFormTitle(''); setFields([]);
-        }}>Formu Güncelle</button>
-      ) : (
-        <button className="bg-green-600 text-white px-4 py-2 rounded" disabled={fields.length===0 || !formTitle} onClick={()=>{
-          onCreate({ title: formTitle, fields });
-          setFormTitle(''); setFields([]);
-        }}>Formu Kaydet</button>
-      )}
-      <div className="text-xs text-gray-500 mt-4">
-        <b>Not:</b> Form doldurulurken atanacak kişi, dolduran kişi, birim vb. meta bilgiler otomatik olarak arkaplanda kaydedilecektir.
-      </div>
-      <div className="mt-6">
-        <h4 className="font-semibold mb-2">Kayıtlı Formlar</h4>
-        <ul className="mb-2">
-          {forms.filter(f=>f.id!=="default").map(f=>(
-            <li key={f.id} className="mb-1 flex items-center gap-2">
-              <span className="font-bold text-blue-700">{f.title}</span>
-              <button className="text-xs text-yellow-700 border border-yellow-400 rounded px-2 py-1 ml-2" onClick={()=>{
-                setEditId(f.id); setFormTitle(f.title); setFields(f.fields);
-              }}>Düzenle</button>
+      <div className="bg-white rounded-2xl shadow p-6 border border-blue-100">
+        <h3 className="font-bold text-lg text-blue-700 mb-2">Kayıtlı Formlar</h3>
+        <ul className="divide-y">
+          {forms.map(f => (
+            <li key={f.id} className="py-3 flex flex-col gap-1">
+              <div className="font-semibold text-blue-800">{f.title}</div>
+              <div className="flex flex-wrap gap-2">
+                {f.fields.map((fld, idx) => (
+                  <span key={idx} className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-xs">
+                    {fld.label} <span className="text-gray-400">({fld.type})</span>
+                  </span>
+                ))}
+              </div>
             </li>
           ))}
         </ul>
-      </div>
-      <div className="text-xs text-gray-500 mt-4">
-        <b>Not:</b> Form doldurulurken atanacak kişi, dolduran kişi, birim vb. meta bilgiler otomatik olarak arkaplanda kaydedilecektir.
       </div>
     </div>
   );

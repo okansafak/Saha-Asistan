@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  sahaasistan_postgis:
+    image: postgis/postgis:15-3.3
+    container_name: sahaasistan_postgis
+    restart: always
+    environment:
+      POSTGRES_DB: sahaasistan
+      POSTGRES_USER: sahaasistan
+      POSTGRES_PASSWORD: sahaasistan123
+    ports:
+      - "5466:5432"
+    volumes:
+      - sahaasistan_postgis_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U panorama"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sahaasistan_postgis_data:
