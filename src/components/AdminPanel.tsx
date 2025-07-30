@@ -34,6 +34,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onAddUser, onAddUnit, units, us
   const [gender, setGender] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [profileImageBase64, setProfileImageBase64] = useState('');
+  const [profileImageSize, setProfileImageSize] = useState<number | null>(null);
+  const [profileImageError, setProfileImageError] = useState<string | null>(null);
   const [socialMedia, setSocialMedia] = useState('');
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
@@ -94,7 +96,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onAddUser, onAddUnit, units, us
           role: String(userRole),
           is_active: isActive
         } as any);
-        setFirstName(''); setLastName(''); setDisplayName(''); setPhone(''); setEmail(''); setGender(''); setBirthDate(''); setProfileImageBase64(''); setSocialMedia(''); setAddress(''); setNotes(''); setUsername(''); setPassword(''); setUserRole('personel'); setUserUnitId(''); setIsActive(true);
+        setFirstName(''); setLastName(''); setDisplayName(''); setPhone(''); setEmail(''); setGender(''); setBirthDate(''); setProfileImageBase64(''); setProfileImageSize(null); setProfileImageError(null); setSocialMedia(''); setAddress(''); setNotes(''); setUsername(''); setPassword(''); setUserRole('personel'); setUserUnitId(''); setIsActive(true);
       }}>
         <Grid container spacing={2} direction="column" sx={{ padding: '24px 32px 8px 32px' }}>
           <Grid item xs={12} sm={6}>
@@ -134,6 +136,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onAddUser, onAddUnit, units, us
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
+                setProfileImageError(null);
+                setProfileImageSize(file.size);
+                if (file.size > 10 * 1024 * 1024) { // 10mb
+                  setProfileImageError('Dosya çok büyük (max 10mb)');
+                  setProfileImageBase64('');
+                  return;
+                }
                 const reader = new FileReader();
                 reader.onloadend = () => {
                   setProfileImageBase64(reader.result as string);
@@ -142,7 +151,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onAddUser, onAddUnit, units, us
               }}
               style={{ display: 'block', marginBottom: 8 }}
             />
-            {profileImageBase64 && (
+            {profileImageSize !== null && (
+              <div style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>
+                Dosya boyutu: {(profileImageSize / 1024 / 1024).toFixed(2)} mb
+              </div>
+            )}
+            {profileImageError && (
+              <div style={{ color: 'red', fontSize: 14, marginBottom: 4 }}>{profileImageError}</div>
+            )}
+            {profileImageBase64 && !profileImageError && (
               <img src={profileImageBase64} alt="Profil Önizleme" style={{ maxWidth: 80, maxHeight: 80, borderRadius: 8, marginTop: 4 }} />
             )}
           </Grid>

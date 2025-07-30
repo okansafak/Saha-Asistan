@@ -1,4 +1,3 @@
-
 import express from 'express';
 import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
@@ -21,13 +20,22 @@ export function createApiRouter(client: Client) {
       gender: 'gender',
       birthDate: 'birth_date',
       address: 'address',
-      profileImageBase64: 'profile_image_base64',
       notes: 'notes',
       is_active: 'is_active',
+      display_name: 'display_name',
+      profile_image_base64: 'profile_image_base64',
     };
     const updates = [];
     const values = [];
     let idx = 1;
+    // Şifre güncelleme desteği
+    if (req.body.password && req.body.password.length > 0) {
+      const bcrypt = require('bcryptjs');
+      const password_hash = await bcrypt.hash(req.body.password, 10);
+      updates.push(`password_hash = $${idx}`);
+      values.push(password_hash);
+      idx++;
+    }
     for (const key in fieldMap) {
       if (req.body[key] !== undefined) {
         updates.push(`${fieldMap[key]} = $${idx}`);
@@ -162,7 +170,7 @@ export function createApiRouter(client: Client) {
 
   // Kullanıcılar
   router.get('/users', async (req, res) => {
-    const result = await client.query('SELECT id, username, first_name, last_name, role, unit_id, email, phone, is_active FROM users');
+    const result = await client.query('SELECT * FROM users');
     res.json(result.rows);
   });
 
