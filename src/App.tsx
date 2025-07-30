@@ -219,6 +219,10 @@ function App() {
                     setUnits(prev => prev.map(u => u.id === unit.id ? updated : u));
                   } catch (e) {}
                 }}
+                onDeleteUnitSuccess={async () => {
+                  const updated = await (await import('./services/unitApi')).fetchUnits();
+                  setUnits(updated);
+                }}
               />
             </Box>
           )}

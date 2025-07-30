@@ -1,6 +1,5 @@
 import type { User } from '../data/users';
 import type { Unit } from '../data/units';
-import type { FormField } from './FormBuilder';
 
 export type JobStatus = 'atandi' | 'devam' | 'tamamlandi' | 'iptal' | 'basladi' | 'beklemede';
 

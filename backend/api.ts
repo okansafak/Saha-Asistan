@@ -5,6 +5,57 @@ import bcrypt from 'bcryptjs';
 export function createApiRouter(client: Client) {
   const router = express.Router();
 
+  // Birim güncelle
+  router.put('/units/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, parentId } = req.body;
+    if (!name) return res.status(400).json({ error: 'Birim adı zorunlu' });
+    try {
+      // Aynı isimde başka bir birim var mı (bu id hariç)
+      const exists = await client.query('SELECT id FROM units WHERE LOWER(name) = LOWER($1) AND id <> $2', [name, id]);
+      if (exists.rows.length > 0) {
+        return res.status(409).json({ error: 'Bu isimde başka bir birim zaten var' });
+      }
+      const result = await client.query(
+        'UPDATE units SET name = $1, parent_id = $2 WHERE id = $3 RETURNING *',
+        [name, parentId || null, id]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Birim bulunamadı' });
+      }
+      res.json(result.rows[0]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: 'Birim güncellenemedi', details: msg });
+    }
+  });
+
+  // Birim sil
+  router.delete('/units/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+      // Bağlı kullanıcı var mı kontrol et
+      const userRes = await client.query('SELECT id FROM users WHERE unit_id = $1', [id]);
+      if (userRes.rows.length > 0) {
+        return res.status(409).json({ error: 'Bu birime bağlı kullanıcı(lar) olduğu için silinemez.' });
+      }
+      // Alt birimleri sil (recursive silme)
+      const subUnits = await client.query('SELECT id FROM units WHERE parent_id = $1', [id]);
+      for (const sub of subUnits.rows) {
+        await client.query('DELETE FROM units WHERE id = $1', [sub.id]);
+      }
+      // Birimi sil
+      const delRes = await client.query('DELETE FROM units WHERE id = $1 RETURNING *', [id]);
+      if (delRes.rows.length === 0) {
+        return res.status(404).json({ error: 'Birim bulunamadı' });
+      }
+      res.json({ success: true });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: 'Birim silinemedi', details: msg });
+    }
+  });
+
   // Kullanıcı güncelle
   router.put('/users/:id', async (req, res) => {
     const { id } = req.params;
@@ -50,7 +101,6 @@ export function createApiRouter(client: Client) {
     try {
       const result = await client.query(
         `UPDATE users SET ${updates.join(', ')}, updated_at = NOW() WHERE id = $${idx} RETURNING *`,
-        values
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
@@ -221,4 +271,6 @@ export function createApiRouter(client: Client) {
   });
 
   return router;
+  return router;
 }
+  const router = express.Router();
