@@ -8,11 +8,12 @@
 import JobCreateForm from './components/JobCreateForm';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+// ...existing code...
+import { DataGrid } from '@mui/x-data-grid';
+import FormBuilder from './components/FormBuilder';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
-import { DataGrid } from '@mui/x-data-grid';
-import FormBuilder from './components/FormBuilder';
 import Sidebar, { type SidebarSection } from './components/Sidebar';
 import UnitList from './components/UnitList';
 
@@ -20,10 +21,12 @@ import React from 'react';
 import MapComponent from './components/MapComponent';
 import LoginScreen from './components/LoginScreen';
 
-import { fetchUsers, fetchUnits, fetchForms, fetchJobs } from './services/api';
+import { fetchUsers, fetchUnits, fetchForms, fetchJobs, createForm, updateForm } from './services/api';
+// ...existing code...
+  // ...existing code...
 import { addUnit } from './services/unitApi';
 import { addUser } from './services/userApi';
-import type { User, UserRole } from './data/users';
+import type { User } from './data/users';
 import type { Unit } from './data/units';
 
 import JobDelegate from './components/JobDelegate';
@@ -36,6 +39,12 @@ import UserEditModal from './components/UserEditModal';
 import { updateUser } from './services/userApi';
 
 function App() {
+  // Form silme fonksiyonu (App fonksiyonu içinde, setForms erişimi var)
+  async function deleteForm(id: string) {
+    await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}/forms/${id}`, { method: 'DELETE' });
+    setForms(prev => prev.filter((f: any) => f.id !== id));
+  }
+  const [createFormOpen, setCreateFormOpen] = React.useState(false);
   const [forms, setForms] = React.useState<any[]>([]);
   const [jobs, setJobs] = React.useState<any[]>([]);
   const [currentUser, setCurrentUser] = React.useState<User | null>(() => {
@@ -46,11 +55,13 @@ function App() {
   const [users, setUsers] = React.useState<User[]>([]);
   const [units, setUnits] = React.useState<Unit[]>([]);
   // Kullanıcı ekleme dialog state
-  const [userDialogOpen, setUserDialogOpen] = React.useState(false);
+  // ...existing code...
   // DataGrid pagination state
   const [userTablePagination, setUserTablePagination] = React.useState<{ page: number; pageSize: number }>({ page: 0, pageSize: 10 });
   // Kullanıcı ekleme/düzenleme modal state
   const [editUser, setEditUser] = useState<User | null | {}>(null);
+  // Form düzenleme için state
+  const [editForm, setEditForm] = useState<any | null>(null);
 
   React.useEffect(() => {
     fetchUsers().then(setUsers).catch(() => setUsers([]));
@@ -114,29 +125,29 @@ function App() {
                       const unitName = unitId ? (units.find(unit => unit.id === unitId)?.name || '-') : '-';
                       let social = {};
                       try {
-                        social = typeof u.social_media === 'string' ? JSON.parse(u.social_media) : (u.social_media || {});
+                    social = typeof u.socialMedia === 'string' ? JSON.parse(u.socialMedia) : (u.socialMedia || {});
                       } catch { social = {}; }
-                      const hasAnySocial = !!(social.x || social.instagram || social.facebook || social.tiktok);
-                      const safe = v => (v === undefined || v === null || v === '') ? '-' : v;
+                    const hasAnySocial = !!((social as any).x || (social as any).instagram || (social as any).facebook || (social as any).tiktok);
+                    const safe = (v: any) => (v === undefined || v === null || v === '') ? '-' : v;
                       return {
                         id: u.id,
                         ad: safe(u.first_name),
                         soyad: safe(u.last_name),
                         kullaniciAdi: safe(u.username),
-                        gorunenAd: safe(u.display_name),
+                      gorunenAd: safe(u.name),
                         rol: safe(u.role),
                         birim: safe(unitName),
                         email: safe(u.email),
                         telefon: safe(u.phone),
                         cinsiyet: safe(u.gender),
-                        dogumTarihi: safe(u.birth_date),
-                        profilResmi: (u.profile_image_base64 && u.profile_image_base64 !== '-' && u.profile_image_base64 !== '') ? u.profile_image_base64 : '-',
-                        sosyalMedya: hasAnySocial ? social : '-',
+                      dogumTarihi: safe(u.birthDate),
+                      profilResmi: (u.profileImageBase64 && u.profileImageBase64 !== '-' && u.profileImageBase64 !== '') ? u.profileImageBase64 : '-',
+                      sosyalMedya: hasAnySocial ? social : '-',
                         adres: safe(u.address),
                         notlar: safe(u.notes),
-                        durum: u.is_active !== false ? 'Aktif' : 'Pasif',
-                        kayitTarihi: (u.created_at && u.created_at !== '-' && u.created_at !== '' && u.created_at !== null) ? new Date(u.created_at).toLocaleString() : '-',
-                        guncellemeTarihi: (u.updated_at && u.updated_at !== '-' && u.updated_at !== '' && u.updated_at !== null) ? new Date(u.updated_at).toLocaleString() : '-',
+                      durum: u.isActive !== false ? 'Aktif' : 'Pasif',
+                      kayitTarihi: (u.createdAt && u.createdAt !== '-' && u.createdAt !== '' && u.createdAt !== null) ? new Date(u.createdAt).toLocaleString() : '-',
+                      guncellemeTarihi: (u.updatedAt && u.updatedAt !== '-' && u.updatedAt !== '' && u.updatedAt !== null) ? new Date(u.updatedAt).toLocaleString() : '-',
                         actions: u,
                       };
                     })}
@@ -227,23 +238,65 @@ function App() {
             </Box>
           )}
           {sidebarSection === 'forms' && (
-            <Box>
-              <FormBuilder
-                forms={forms.length ? forms : [{ id: 'default', title: 'Varsayılan İş Formu', fields: [] }]}
-                onCreate={form => setForms(prev => [...prev, { id: Date.now().toString(), ...form }])}
-                onUpdate={(id, form) => setForms(prev => prev.map(f => f.id === id ? { ...f, ...form } : f))}
-              />
-              <Box sx={{ mb: 4 }}>
-                <h2 style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>Formlar</h2>
-                <ul style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px #0001', padding: 0, listStyle: 'none' }}>
+            <Box sx={{ width: '100%', maxWidth: 900, mx: 'auto', mt: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <h2 style={{ fontWeight: 700, fontSize: 28, color: '#2563eb', margin: 0 }}>Formlar</h2>
+                <Button variant="contained" sx={{ fontWeight: 700, borderRadius: 2, minWidth: 160, height: 44, fontSize: 16 }} onClick={() => setCreateFormOpen(true)}>Form Oluştur</Button>
+              </div>
+              {/* Form oluşturma modalı */}
+              <Dialog open={!!createFormOpen} onClose={() => setCreateFormOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Yeni Form Oluştur</DialogTitle>
+                <DialogContent>
+                  <FormBuilder
+                    forms={[]}
+                    onCreate={async form => {
+                      const newForm = await createForm(form);
+                      setForms(prev => [...prev, newForm]);
+                      setCreateFormOpen(false);
+                    }}
+                    onUpdate={() => {}}
+                  />
+                </DialogContent>
+              </Dialog>
+              <Box sx={{ background: '#fff', borderRadius: 3, boxShadow: '0 2px 12px #0001', p: { xs: 2, md: 3 }, minWidth: 400, maxWidth: 900, mx: 'auto' }}>
+                <h3 style={{ fontWeight: 700, fontSize: 20, marginBottom: 12, color: '#2563eb' }}>Kayıtlı Formlar</h3>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                   {forms.map(f => (
-                    <li key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px', borderBottom: '1px solid #f1f5f9' }}>
-                      <span>{f.title || f.name}</span>
-                      <span style={{ fontSize: 13, color: '#64748b' }}>Alan: {f.fields?.length || 0}</span>
+                    <li key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', padding: '12px 0' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 17, color: '#2563eb' }}>{f.title || f.name}</div>
+                        <div style={{ fontSize: 13, color: '#64748b' }}>Alan: {f.fields?.length || 0}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <Button variant="outlined" size="small" onClick={() => setEditForm(f)} sx={{ fontWeight: 600, borderRadius: 2 }}>Düzenle</Button>
+                        <Button variant="outlined" color="error" size="small" onClick={() => deleteForm(f.id)} sx={{ fontWeight: 600, borderRadius: 2 }}>Sil</Button>
+                      </div>
                     </li>
                   ))}
                 </ul>
               </Box>
+              {/* Form düzenleme modalı */}
+              <Dialog open={!!editForm} onClose={() => setEditForm(null)} maxWidth="sm" fullWidth>
+                <DialogTitle>Formu Düzenle</DialogTitle>
+                <DialogContent>
+                  {editForm && (
+                    <FormBuilder
+                      forms={[editForm]}
+                      onCreate={() => {}}
+                      onUpdate={async (id, form) => {
+                        const updated = await updateForm(id, form);
+                        setForms(prev => prev.map(f => f.id === id ? updated : f));
+                        setEditForm(null);
+                      }}
+                      onDelete={async (id) => {
+                        await deleteForm(id);
+                        setEditForm(null);
+                      }}
+                      editMode
+                    />
+                  )}
+                </DialogContent>
+              </Dialog>
             </Box>
           )}
         </Box>

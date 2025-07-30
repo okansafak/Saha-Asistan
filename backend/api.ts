@@ -1,3 +1,4 @@
+  // Form sil
 import express from 'express';
 import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
@@ -254,7 +255,72 @@ export function createApiRouter(client: Client) {
   // Formlar
   router.get('/forms', async (req, res) => {
     const result = await client.query('SELECT * FROM forms');
-    res.json(result.rows);
+    res.json(result.rows.map(row => ({
+      id: row.id.toString(),
+      title: row.name,
+      fields: row.schema,
+      isDefault: row.is_default
+    })));
+  });
+
+  // Form ekle
+  router.post('/forms', async (req, res) => {
+    const { title, fields } = req.body;
+    if (!title || !fields) return res.status(400).json({ error: 'Başlık ve alanlar zorunlu' });
+    const result = await client.query(
+      'INSERT INTO forms (name, schema) VALUES ($1, $2) RETURNING *',
+      [title, JSON.stringify(fields)]
+    );
+    const row = result.rows[0];
+    res.status(201).json({ id: row.id.toString(), title: row.name, fields: row.schema, isDefault: row.is_default });
+  });
+
+  // Form güncelle
+  router.put('/forms/:id', async (req, res) => {
+    const { id } = req.params;
+    const { title, fields } = req.body;
+    if (!title || !fields) return res.status(400).json({ error: 'Başlık ve alanlar zorunlu' });
+    const result = await client.query(
+      'UPDATE forms SET name = $1, schema = $2 WHERE id = $3 RETURNING *',
+      [title, JSON.stringify(fields), id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Form bulunamadı' });
+    const row = result.rows[0];
+    res.json({ id: row.id.toString(), title: row.name, fields: row.schema, isDefault: row.is_default });
+  });
+
+  // Form sil
+  router.delete('/forms/:id', async (req, res) => {
+    const { id } = req.params;
+    const result = await client.query('DELETE FROM forms WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Form bulunamadı' });
+    res.json({ success: true });
+  });
+
+  // Form ekle
+  router.post('/forms', async (req, res) => {
+    const { title, fields } = req.body;
+    if (!title || !fields) return res.status(400).json({ error: 'Başlık ve alanlar zorunlu' });
+    const result = await client.query(
+      'INSERT INTO forms (name, schema) VALUES ($1, $2) RETURNING *',
+      [title, JSON.stringify(fields)]
+    );
+    const row = result.rows[0];
+    res.status(201).json({ id: row.id.toString(), title: row.name, fields: row.schema, isDefault: row.is_default });
+  });
+
+  // Form güncelle
+  router.put('/forms/:id', async (req, res) => {
+    const { id } = req.params;
+    const { title, fields } = req.body;
+    if (!title || !fields) return res.status(400).json({ error: 'Başlık ve alanlar zorunlu' });
+    const result = await client.query(
+      'UPDATE forms SET name = $1, schema = $2 WHERE id = $3 RETURNING *',
+      [title, JSON.stringify(fields), id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Form bulunamadı' });
+    const row = result.rows[0];
+    res.json({ id: row.id.toString(), title: row.name, fields: row.schema, isDefault: row.is_default });
   });
 
   // İşler

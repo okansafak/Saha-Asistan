@@ -1,3 +1,22 @@
+export async function createForm(form: any) {
+  const res = await fetch(`${API_URL}/forms`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(form)
+  });
+  if (!res.ok) throw new Error('Form eklenemedi');
+  return res.json();
+}
+
+export async function updateForm(id: string, form: any) {
+  const res = await fetch(`${API_URL}/forms/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(form)
+  });
+  if (!res.ok) throw new Error('Form güncellenemedi');
+  return res.json();
+}
 // Basit API servis fonksiyonları (fetch tabanlı)
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
