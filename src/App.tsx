@@ -1,4 +1,10 @@
 import JobCreateForm from './components/JobCreateForm';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import { DataGrid } from '@mui/x-data-grid';
 import FormBuilder from './components/FormBuilder';
 import Sidebar, { type SidebarSection } from './components/Sidebar';
 
@@ -16,7 +22,7 @@ import type { Unit } from './data/units';
 import JobDelegate from './components/JobDelegate';
 import JobHistory from './components/JobHistory';
 import JobEditForm from './components/JobEditForm';
-import UserRow from './components/UserRow';
+// import UserRow from './components/UserRow';
 
 function App() {
   const [forms, setForms] = React.useState<any[]>([]);
@@ -28,6 +34,10 @@ function App() {
   const [sidebarSection, setSidebarSection] = React.useState<SidebarSection>('users');
   const [users, setUsers] = React.useState<User[]>([]);
   const [units, setUnits] = React.useState<Unit[]>([]);
+  // Kullanıcı ekleme dialog state
+  const [userDialogOpen, setUserDialogOpen] = React.useState(false);
+  // DataGrid pagination state
+  const [userTablePagination, setUserTablePagination] = React.useState<{ page: number; pageSize: number }>({ page: 0, pageSize: 10 });
 
   React.useEffect(() => {
     fetchUsers().then(setUsers).catch(() => setUsers([]));
@@ -56,75 +66,99 @@ function App() {
   // Superadmin için yeni layout
   if (currentUser.role === 'superadmin') {
     return (
-      <div className="min-h-screen flex bg-gray-50">
+      <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', display: 'flex', flexDirection: 'row' }}>
         <Sidebar selected={sidebarSection} onSelect={setSidebarSection} />
-        <main className="flex-1 p-8">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-2xl font-bold text-blue-700">Saha Asistan Yönetim</h1>
-            <span className="text-gray-600">{currentUser.name} ({currentUser.role})</span>
-            <button className="ml-4 px-3 py-1 bg-gray-200 rounded" onClick={() => setCurrentUser(null)}>Çıkış</button>
-          </div>
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            p: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: '100vh',
+            marginLeft: '240px',
+            overflowX: 'auto',
+            width: 'calc(100vw - 240px)',
+            boxSizing: 'border-box',
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#2563eb' }}>Saha Asistan Yönetim</h1>
+            <span style={{ color: '#334155' }}>{currentUser.name} ({currentUser.role})</span>
+            <button style={{ marginLeft: 16, padding: '6px 16px', background: '#e0e7ef', borderRadius: 8, border: 0, fontWeight: 600, cursor: 'pointer' }} onClick={() => setCurrentUser(null)}>Çıkış</button>
+          </Box>
           {sidebarSection === 'users' && (
-            <>
-              <AdminPanel
-                units={units}
-                users={users}
-                onAddUser={async user => {
-                  try {
-                    // user: Omit<User, 'id'>, may include legacy name field, but addUser expects first_name, last_name
-                    const { first_name, last_name, unit_id, username, password, role } = user as any;
-                    await addUser({ first_name, last_name, unit_id, username, password, role });
-                    const updated = await fetchUsers();
-                    setUsers(updated);
-                  } catch (e) {
-                    // Hata yönetimi eklenebilir
-                  }
-                }}
-                onAddUnit={async unit => {
-                  try {
-                    await addUnit(unit);
-                    const updated = await fetchUnits();
-                    setUnits(updated);
-                  } catch (e) {
-                    // Hata yönetimi eklenebilir
-                  }
-                }}
-              />
-              <div className="mb-6">
-                <h2 className="font-bold text-lg mb-2">Kullanıcılar</h2>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full bg-white rounded-xl shadow text-sm">
-                    <thead>
-                      <tr className="bg-blue-50 text-blue-700">
-                        <th className="p-2 text-left">Ad</th>
-                        <th className="p-2 text-left">Soyad</th>
-                        <th className="p-2 text-left">Kullanıcı Adı</th>
-                        <th className="p-2 text-left">Rol</th>
-                        <th className="p-2 text-left">Birim</th>
-                        <th className="p-2 text-left">E-posta</th>
-                        <th className="p-2 text-left">Telefon</th>
-                        <th className="p-2 text-left">Durum</th>
-                        <th className="p-2 text-left">İşlem</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map(u => (
-                        <UserRow key={u.id} user={u} units={units} onUpdate={async (id, data) => {
-                          try {
-                            await import('./services/userApi').then(m => m.updateUser(id, data));
-                            const updated = await fetchUsers();
-                            setUsers(updated);
-                          } catch (e) {}
-                        }} />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </>
+            <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <h2 style={{ fontWeight: 700, fontSize: 20 }}>Kullanıcılar</h2>
+                <Button variant="contained" color="primary" onClick={() => setUserDialogOpen(true)} sx={{ fontWeight: 700, borderRadius: 2 }}>Kullanıcı Ekle</Button>
+              </Box>
+              <Box sx={{ height: 520, width: '100%', minWidth: 900, maxWidth: 1200, margin: '0 auto', overflowX: 'auto', background: '#fff', borderRadius: 3, boxShadow: 2, p: 2 }}>
+                <DataGrid
+                  rows={users.map(u => {
+                    // Try to resolve unit id from both u.unit and u.unit_id
+                    const unitId = (u as any).unit_id || u.unit;
+                    const unitName = unitId ? (units.find(unit => unit.id === unitId)?.name || '-') : '-';
+                    return {
+                      id: u.id,
+                      ad: u.first_name || '-',
+                      soyad: u.last_name || '-',
+                      kullaniciAdi: u.username || '-',
+                      rol: u.role || '-',
+                      birim: unitName,
+                      email: u.email || '-',
+                      telefon: u.phone || '-',
+                      durum: u.isActive !== false ? 'Aktif' : 'Pasif',
+                    };
+                  })}
+                  columns={[
+                    { field: 'ad', headerName: 'Ad', minWidth: 100, flex: 1, sortable: true, filterable: true },
+                    { field: 'soyad', headerName: 'Soyad', minWidth: 100, flex: 1, sortable: true, filterable: true },
+                    { field: 'kullaniciAdi', headerName: 'Kullanıcı Adı', minWidth: 120, flex: 1, sortable: true, filterable: true },
+                    { field: 'rol', headerName: 'Rol', minWidth: 90, flex: 1, sortable: true, filterable: true },
+                    { field: 'birim', headerName: 'Birim', minWidth: 120, flex: 1, sortable: true, filterable: true },
+                    { field: 'email', headerName: 'E-posta', minWidth: 140, flex: 1, sortable: true, filterable: true },
+                    { field: 'telefon', headerName: 'Telefon', minWidth: 100, flex: 1, sortable: true, filterable: true },
+                    { field: 'durum', headerName: 'Durum', minWidth: 80, flex: 1, sortable: true, filterable: true },
+                  ]}
+                  pagination
+                  paginationModel={userTablePagination}
+                  onPaginationModelChange={setUserTablePagination}
+                  pageSizeOptions={[10, 20, 50]}
+                  disableRowSelectionOnClick
+                  autoHeight
+                  sx={{ width: '100%' }}
+                />
+              </Box>
+              <Dialog open={userDialogOpen} onClose={() => setUserDialogOpen(false)} maxWidth="md" fullWidth>
+                <DialogContent sx={{ p: 0 }}>
+                  <AdminPanel
+                    units={units}
+                    users={users}
+                    onAddUser={async user => {
+                      try {
+                        const { first_name, last_name, unit_id, username, password, role } = user as any;
+                        await addUser({ first_name, last_name, unit_id, username, password, role });
+                        const updated = await fetchUsers();
+                        setUsers(updated);
+                        setUserDialogOpen(false);
+                      } catch (e) {}
+                    }}
+                    onAddUnit={async unit => {
+                      try {
+                        await addUnit(unit);
+                        const updated = await fetchUnits();
+                        setUnits(updated);
+                      } catch (e) {}
+                    }}
+                    onClose={() => setUserDialogOpen(false)}
+                  />
+                </DialogContent>
+              </Dialog>
+            </Box>
           )}
           {sidebarSection === 'units' && (
-            <>
+            <Box>
               <AdminPanel
                 units={units}
                 users={users}
@@ -133,54 +167,50 @@ function App() {
                     const { first_name, last_name, unit_id, username, password, role } = user as any;
                     const newUser = await addUser({ first_name, last_name, unit_id, username, password, role });
                     setUsers(prev => [...prev, newUser]);
-                  } catch (e) {
-                    // Hata yönetimi eklenebilir
-                  }
+                  } catch (e) {}
                 }}
                 onAddUnit={async unit => {
                   try {
                     const newUnit = await addUnit(unit);
                     setUnits(prev => [...prev, newUnit]);
-                  } catch (e) {
-                    // Hata yönetimi eklenebilir
-                  }
+                  } catch (e) {}
                 }}
               />
-              <div className="mb-6">
-                <h2 className="font-bold text-lg mb-2">Birimler</h2>
-                <ul className="divide-y bg-white rounded-xl shadow">
+              <Box sx={{ mb: 4 }}>
+                <h2 style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>Birimler</h2>
+                <ul style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px #0001', padding: 0, listStyle: 'none' }}>
                   {units.map(u => (
-                    <li key={u.id} className="flex justify-between items-center px-4 py-2">
+                    <li key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px', borderBottom: '1px solid #f1f5f9' }}>
                       <span>{u.name}</span>
-                      <span className="text-xs text-gray-500">{u.parentId ? `Üst: ${units.find(x=>x.id===u.parentId)?.name}` : ''}</span>
+                      <span style={{ fontSize: 13, color: '#64748b' }}>{u.parentId ? `Üst: ${units.find(x=>x.id===u.parentId)?.name}` : ''}</span>
                     </li>
                   ))}
                 </ul>
-              </div>
-            </>
+              </Box>
+            </Box>
           )}
           {sidebarSection === 'forms' && (
-            <>
+            <Box>
               <FormBuilder
                 forms={forms.length ? forms : [{ id: 'default', title: 'Varsayılan İş Formu', fields: [] }]}
                 onCreate={form => setForms(prev => [...prev, { id: Date.now().toString(), ...form }])}
                 onUpdate={(id, form) => setForms(prev => prev.map(f => f.id === id ? { ...f, ...form } : f))}
               />
-              <div className="mb-6">
-                <h2 className="font-bold text-lg mb-2">Formlar</h2>
-                <ul className="divide-y bg-white rounded-xl shadow">
+              <Box sx={{ mb: 4 }}>
+                <h2 style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>Formlar</h2>
+                <ul style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px #0001', padding: 0, listStyle: 'none' }}>
                   {forms.map(f => (
-                    <li key={f.id} className="flex justify-between items-center px-4 py-2">
+                    <li key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px', borderBottom: '1px solid #f1f5f9' }}>
                       <span>{f.title || f.name}</span>
-                      <span className="text-xs text-gray-500">Alan: {f.fields?.length || 0}</span>
+                      <span style={{ fontSize: 13, color: '#64748b' }}>Alan: {f.fields?.length || 0}</span>
                     </li>
                   ))}
                 </ul>
-              </div>
-            </>
+              </Box>
+            </Box>
           )}
-        </main>
-      </div>
+        </Box>
+      </Box>
     );
   }
 

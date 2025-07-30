@@ -20,10 +20,20 @@ const UserRow: React.FC<Props> = ({ user, units, onUpdate }) => {
     phone: user.phone || '',
     isActive: user.isActive !== false,
   });
+  const [deleting, setDeleting] = useState(false);
 
   const handleSave = () => {
     onUpdate(user.id, form);
     setEditing(false);
+  };
+
+  const handleDelete = async () => {
+    if (user.role === 'superadmin') return;
+    setDeleting(true);
+    try {
+      await import('../services/userApi').then(m => m.deleteUser(user.id));
+    } catch (e) {}
+    setDeleting(false);
   };
 
   if (editing) {
@@ -51,6 +61,9 @@ const UserRow: React.FC<Props> = ({ user, units, onUpdate }) => {
         <td className="p-2 flex gap-2">
           <button className="bg-green-600 text-white px-2 py-1 rounded" onClick={handleSave}>Kaydet</button>
           <button className="bg-gray-300 px-2 py-1 rounded" onClick={()=>setEditing(false)}>Vazgeç</button>
+          {user.role !== 'superadmin' && (
+            <button className="bg-red-600 text-white px-2 py-1 rounded" onClick={handleDelete} disabled={deleting}>{deleting ? 'Siliniyor...' : 'Sil'}</button>
+          )}
         </td>
       </tr>
     );
@@ -68,6 +81,9 @@ const UserRow: React.FC<Props> = ({ user, units, onUpdate }) => {
       <td className="p-2 text-center">{user.isActive !== false ? 'Aktif' : 'Pasif'}</td>
       <td className="p-2 flex gap-2">
         <button className="bg-blue-600 text-white px-2 py-1 rounded" onClick={()=>setEditing(true)}>Düzenle</button>
+        {user.role !== 'superadmin' && (
+          <button className="bg-red-600 text-white px-2 py-1 rounded" onClick={handleDelete} disabled={deleting}>{deleting ? 'Siliniyor...' : 'Sil'}</button>
+        )}
       </td>
     </tr>
   );

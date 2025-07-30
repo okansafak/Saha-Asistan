@@ -12,7 +12,7 @@ export interface User {
   gender?: 'male' | 'female' | 'other';
   birthDate?: string;
   address?: string;
-  profileImageUrl?: string;
+  profileImageBase64?: string;
   socialMedia?: Record<string, string>;
   notes?: string;
   isActive?: boolean;

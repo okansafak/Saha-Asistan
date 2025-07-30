@@ -57,7 +57,7 @@ export async function checkAndMigrate() {
         { name: 'email', type: "VARCHAR(100)" },
         { name: 'gender', type: "VARCHAR(20)" },
         { name: 'birth_date', type: "DATE" },
-        { name: 'profile_image_url', type: "TEXT" },
+        { name: 'profile_image_base64', type: "TEXT" },
         { name: 'social_media', type: "JSONB" },
         { name: 'address', type: "TEXT" },
         { name: 'is_active', type: "BOOLEAN DEFAULT TRUE" },

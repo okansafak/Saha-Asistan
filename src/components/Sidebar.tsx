@@ -1,54 +1,95 @@
+
 import React from 'react';
-import { HiUsers, HiOfficeBuilding, HiDocumentText } from 'react-icons/hi';
+import Box from '@mui/material/Box';
+import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Avatar from '@mui/material/Avatar';
+import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
+import HiUsersIcon from '@mui/icons-material/Group';
+import HiOfficeBuildingIcon from '@mui/icons-material/Business';
+import HiDocumentTextIcon from '@mui/icons-material/Description';
+
+export type SidebarSection = 'users' | 'units' | 'forms';
+
+const items = [
+  { key: 'users', label: 'Kullanıcılar', icon: <HiUsersIcon /> },
+  { key: 'units', label: 'Birimler', icon: <HiOfficeBuildingIcon /> },
+  { key: 'forms', label: 'Formlar', icon: <HiDocumentTextIcon /> },
+];
 
 interface SidebarProps {
   onSelect: (section: SidebarSection) => void;
   selected: SidebarSection;
 }
 
-export type SidebarSection = 'users' | 'units' | 'forms';
-
-const items = [
-  { key: 'users', label: 'Kullanıcılar', icon: <HiUsers /> },
-  { key: 'units', label: 'Birimler', icon: <HiOfficeBuilding /> },
-  { key: 'forms', label: 'Formlar', icon: <HiDocumentText /> },
-];
-
-
 const Sidebar: React.FC<SidebarProps> = ({ onSelect, selected }) => (
-  <aside className="h-full w-64 bg-gradient-to-b from-blue-800 via-blue-600 to-indigo-700 text-white flex flex-col py-8 px-4 shadow-2xl rounded-r-3xl relative">
-    {/* Logo ve başlık */}
-    <div className="mb-10 flex flex-col items-center select-none">
-      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg mb-2">
+  <Drawer
+    variant="permanent"
+    PaperProps={{
+      sx: {
+        width: 240,
+        bgcolor: '#172554',
+        color: '#f1f5f9',
+        border: 0,
+        boxShadow: 6,
+        borderRadius: '0 24px 24px 0',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        height: '100vh',
+        zIndex: 1200,
+        py: 4,
+        px: 2,
+      },
+    }}
+    sx={{ flexShrink: 0 }}
+  >
+    <Box mb={6} display="flex" flexDirection="column" alignItems="center" width="100%">
+      <Avatar sx={{ width: 64, height: 64, bgcolor: '#2563eb', mb: 1 }}>
         <svg width="32" height="32" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fff" fillOpacity="0.15"/><path d="M7 17l5-5 5 5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 7h10" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
-      </div>
-      <div className="text-2xl font-black tracking-wide text-center drop-shadow-lg">Saha Asistan</div>
-      <div className="text-xs text-blue-200 mt-1 tracking-widest">Yönetim Paneli</div>
-    </div>
-    {/* Menü */}
-    <nav className="flex-1 flex flex-col gap-2">
+      </Avatar>
+      <Typography variant="h6" fontWeight={900} align="center" sx={{ letterSpacing: 1, color: '#f1f5f9' }}>Saha Asistan</Typography>
+      <Typography variant="caption" sx={{ mt: 0.5, letterSpacing: 2, color: '#a5b4fc' }}>Yönetim Paneli</Typography>
+    </Box>
+    <List sx={{ width: '100%' }}>
       {items.map(item => (
-        <button
-          key={item.key}
-          className={`flex items-center gap-3 px-5 py-3 rounded-xl text-lg font-semibold transition-all duration-200 hover:bg-blue-900/70 focus:outline-none focus:ring-2 focus:ring-blue-300/40 ${selected === item.key ? 'bg-white/10 shadow-lg ring-2 ring-white/30 scale-[1.04]' : ''}`}
-          onClick={() => onSelect(item.key as SidebarSection)}
-        >
-          <span className={`text-2xl ${selected === item.key ? 'text-yellow-300 drop-shadow' : 'text-blue-100'}`}>{item.icon}</span>
-          <span className="tracking-wide">{item.label}</span>
-        </button>
+        <ListItem key={item.key} disablePadding>
+          <ListItemButton
+            selected={selected === item.key}
+            onClick={() => onSelect(item.key as SidebarSection)}
+            sx={{
+              borderRadius: 2,
+              mb: 1,
+              bgcolor: selected === item.key ? '#1e293b' : 'transparent',
+              boxShadow: selected === item.key ? 3 : 0,
+              '&:hover': { bgcolor: '#334155' },
+            }}
+          >
+            <ListItemIcon sx={{ color: selected === item.key ? '#facc15' : '#a5b4fc', minWidth: 36 }}>{item.icon}</ListItemIcon>
+            <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 600, color: '#f1f5f9' }} />
+          </ListItemButton>
+        </ListItem>
       ))}
-    </nav>
-    {/* Alt profil ve copyright */}
-    <div className="mt-10 flex flex-col items-center">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow">
-          <span>S</span>
-        </div>
-        <span className="text-sm text-blue-100 font-semibold">Superadmin</span>
-      </div>
-      <div className="text-xs text-blue-200 text-center select-none">© {new Date().getFullYear()} <span className="font-bold text-white/80">Saha Asistan</span></div>
-    </div>
-  </aside>
+    </List>
+    <Box flex={1} />
+    <Box mt={6} display="flex" flexDirection="column" alignItems="center" width="100%">
+      <Box display="flex" alignItems="center" gap={1} mb={1}>
+        <Avatar sx={{ width: 32, height: 32, bgcolor: '#2563eb', fontWeight: 700 }}>S</Avatar>
+        <Typography variant="body2" sx={{ color: '#a5b4fc', fontWeight: 600 }}>Superadmin</Typography>
+      </Box>
+      <Typography variant="caption" align="center" sx={{ userSelect: 'none', color: '#a5b4fc' }}>
+        © {new Date().getFullYear()} <b style={{ color: '#f1f5f9', opacity: 0.9 }}>Saha Asistan</b>
+      </Typography>
+    </Box>
+  </Drawer>
 );
 
 export default Sidebar;

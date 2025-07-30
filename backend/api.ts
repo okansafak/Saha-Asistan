@@ -21,7 +21,7 @@ export function createApiRouter(client: Client) {
       gender: 'gender',
       birthDate: 'birth_date',
       address: 'address',
-      profileImageUrl: 'profile_image_url',
+      profileImageBase64: 'profile_image_base64',
       notes: 'notes',
       is_active: 'is_active',
     };
@@ -58,6 +58,14 @@ export function createApiRouter(client: Client) {
   router.delete('/users/:id', async (req, res) => {
     const { id } = req.params;
     try {
+      // Önce kullanıcıyı bul
+      const userRes = await client.query('SELECT role FROM users WHERE id = $1', [id]);
+      if (userRes.rows.length === 0) {
+        return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      }
+      if (userRes.rows[0].role === 'superadmin') {
+        return res.status(403).json({ error: 'Superadmin silinemez' });
+      }
       const result = await client.query('DELETE FROM users WHERE id = $1 RETURNING *', [id]);
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
@@ -71,6 +79,7 @@ export function createApiRouter(client: Client) {
 
   // Kullanıcı ekle
   router.post('/users', async (req, res) => {
+    // Zorunlu alanlar
     const { first_name, last_name, unit_id, username, password, role } = req.body;
     if (!first_name || !last_name || !unit_id || !username || !password || !role) {
       return res.status(400).json({ error: 'first_name, last_name, unit_id, username, password ve role zorunludur' });
@@ -94,9 +103,33 @@ export function createApiRouter(client: Client) {
       // Hash password
       const bcrypt = require('bcryptjs');
       const password_hash = await bcrypt.hash(password, 10);
+
+      // Tüm alanları topla
+      const fields = ['first_name', 'last_name', 'unit_id', 'username', 'password_hash', 'role'];
+      const values = [first_name, last_name, unit_id, username, password_hash, role];
+      const optionalMap = {
+        display_name: req.body.display_name,
+        phone: req.body.phone,
+        email: req.body.email,
+        gender: req.body.gender,
+        birth_date: req.body.birth_date,
+        profile_image_base64: req.body.profile_image_base64,
+        social_media: req.body.social_media,
+        address: req.body.address,
+        notes: req.body.notes,
+        is_active: req.body.is_active
+      };
+      Object.entries(optionalMap).forEach(([key, val]) => {
+        if (val !== undefined) {
+          fields.push(key);
+          values.push(val);
+        }
+      });
+
+      const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
       const result = await client.query(
-        'INSERT INTO users (first_name, last_name, unit_id, username, password_hash, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [first_name, last_name, unit_id, username, password_hash, role]
+        `INSERT INTO users (${fields.join(', ')}) VALUES (${placeholders}) RETURNING *`,
+        values
       );
       res.status(201).json(result.rows[0]);
     } catch (err) {
