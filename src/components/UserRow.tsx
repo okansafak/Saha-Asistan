@@ -76,9 +76,30 @@ const UserRow: React.FC<Props> = ({ user, units, onUpdate }) => {
       <td className="p-2">{user.username}</td>
       <td className="p-2">{user.role}</td>
       <td className="p-2">{units.find(u=>u.id==user.unit)?.name || user.unit || '-'}</td>
-      <td className="p-2">{user.email}</td>
-      <td className="p-2">{user.phone}</td>
+      <td className="p-2">{user.email || '-'}</td>
+      <td className="p-2">{user.phone || '-'}</td>
+      <td className="p-2">{user.gender || '-'}</td>
+      <td className="p-2">{user.birthDate ? new Date(user.birthDate).toLocaleDateString('tr-TR') : '-'}</td>
+      <td className="p-2 text-center">
+        {user.profileImageBase64 ? (
+          <img src={user.profileImageBase64} alt="Profil" className="w-8 h-8 rounded-full object-cover mx-auto" />
+        ) : '-' }
+      </td>
+      <td className="p-2">
+        {user.socialMedia ? (
+          <div className="flex gap-1">
+            {user.socialMedia.x && <span title="X">🕊️</span>}
+            {user.socialMedia.tiktok && <span title="Tiktok">🎵</span>}
+            {user.socialMedia.facebook && <span title="Facebook">📘</span>}
+            {user.socialMedia.instagram && <span title="Instagram">📸</span>}
+          </div>
+        ) : '-' }
+      </td>
+      <td className="p-2">{user.address || '-'}</td>
+      <td className="p-2">{user.notes || '-'}</td>
       <td className="p-2 text-center">{user.isActive !== false ? 'Aktif' : 'Pasif'}</td>
+      <td className="p-2">{user.createdAt ? new Date(user.createdAt).toLocaleString('tr-TR') : '-'}</td>
+      <td className="p-2">{user.updatedAt ? new Date(user.updatedAt).toLocaleString('tr-TR') : '-'}</td>
       <td className="p-2 flex gap-2">
         <button className="bg-blue-600 text-white px-2 py-1 rounded" onClick={()=>setEditing(true)}>Düzenle</button>
         {user.role !== 'superadmin' && (

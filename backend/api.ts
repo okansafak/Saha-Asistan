@@ -102,6 +102,7 @@ export function createApiRouter(client: Client) {
     try {
       const result = await client.query(
         `UPDATE users SET ${updates.join(', ')}, updated_at = NOW() WHERE id = $${idx} RETURNING *`,
+        values
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
