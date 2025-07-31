@@ -13,13 +13,15 @@ import Paper from '@mui/material/Paper';
 import HiUsersIcon from '@mui/icons-material/Group';
 import HiOfficeBuildingIcon from '@mui/icons-material/Business';
 import HiDocumentTextIcon from '@mui/icons-material/Description';
+import WorkIcon from '@mui/icons-material/Work';
 
-export type SidebarSection = 'users' | 'units' | 'forms';
+export type SidebarSection = 'users' | 'units' | 'forms' | 'jobs';
 
 const items = [
   { key: 'users', label: 'Kullanıcılar', icon: <HiUsersIcon /> },
   { key: 'units', label: 'Birimler', icon: <HiOfficeBuildingIcon /> },
   { key: 'forms', label: 'Formlar', icon: <HiDocumentTextIcon /> },
+  { key: 'jobs', label: 'İşler', icon: <WorkIcon /> },
 ];
 
 interface SidebarProps {

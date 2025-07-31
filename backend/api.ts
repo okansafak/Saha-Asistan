@@ -6,6 +6,25 @@ import bcrypt from 'bcryptjs';
 export function createApiRouter(client: Client) {
   const router = express.Router();
 
+  // İş ekle
+  router.post('/jobs', async (req, res) => {
+    const { title, description, formId, formTitle, assignedTo, assignedBy, unitId, address, location, priority, jobType, status, formData } = req.body;
+    if (!title || !formId || !assignedTo || !unitId) {
+      return res.status(400).json({ error: 'Başlık, form, atanan kişi ve birim zorunlu.' });
+    }
+    try {
+      const result = await client.query(
+        `INSERT INTO jobs (title, description, form_id, form_title, assigned_to, assigned_by, unit_id, address, location, priority, job_type, status, form_data, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW()) RETURNING *`,
+        [title, description, formId, formTitle, assignedTo, assignedBy, unitId, address, location ? JSON.stringify(location) : null, priority, jobType, status, formData ? JSON.stringify(formData) : null]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: 'İş eklenemedi', details: msg });
+    }
+  });
+
   // Birim güncelle
   router.put('/units/:id', async (req, res) => {
     const { id } = req.params;

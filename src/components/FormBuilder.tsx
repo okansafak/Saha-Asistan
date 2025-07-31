@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 
-interface Field {
+export type Field = {
   label: string;
   type: string;
   options?: string[];
-}
+};
 
 interface Form {
   id: string;

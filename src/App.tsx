@@ -21,7 +21,7 @@ import React from 'react';
 import MapComponent from './components/MapComponent';
 import LoginScreen from './components/LoginScreen';
 
-import { fetchUsers, fetchUnits, fetchForms, fetchJobs, createForm, updateForm } from './services/api';
+import { fetchUsers, fetchUnits, fetchForms, fetchJobs, createForm, updateForm, createJob } from './services/api';
 // ...existing code...
   // ...existing code...
 import { addUnit } from './services/unitApi';
@@ -39,6 +39,8 @@ import UserEditModal from './components/UserEditModal';
 import { updateUser } from './services/userApi';
 
 function App() {
+  // İş ekleme modalı için state
+  const [jobCreateOpen, setJobCreateOpen] = useState(false);
   // Form silme fonksiyonu (App fonksiyonu içinde, setForms erişimi var)
   async function deleteForm(id: string) {
     await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}/forms/${id}`, { method: 'DELETE' });
@@ -212,6 +214,50 @@ function App() {
               </Dialog>
             </Box>
           )}
+          {sidebarSection === 'jobs' && (
+            <Box sx={{ width: '100%', maxWidth: 1300, mx: 'auto', mt: { xs: 2, md: 4 }, position: 'relative' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <h2 style={{ fontWeight: 700, fontSize: 26, color: '#2563eb', margin: 0 }}>İşler</h2>
+                <Button variant="contained" color="primary" onClick={() => setJobCreateOpen(true)} sx={{ fontWeight: 700, borderRadius: 2, minWidth: 160, height: 44, fontSize: 16 }}>Yeni İş Ekle</Button>
+              </Box>
+              {/* İş ekleme modalı */}
+              <Dialog open={!!jobCreateOpen} onClose={() => setJobCreateOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Yeni İş Ekle</DialogTitle>
+                <DialogContent>
+                  <JobCreateForm
+                    users={users}
+                    units={units}
+                    forms={forms}
+                    currentUser={currentUser}
+                    onCreate={async job => {
+                      await createJob(job);
+                      const updated = await fetchJobs();
+                      setJobs(updated);
+                      setJobCreateOpen(false);
+                    }}
+                  />
+                </DialogContent>
+              </Dialog>
+              <Box sx={{ background: '#fff', borderRadius: 3, boxShadow: '0 2px 12px #0001', p: { xs: 2, md: 3 }, minWidth: 400, maxWidth: 1300, mx: 'auto', mt: 3 }}>
+                {jobs.length === 0 && <div className="text-gray-500">Henüz iş yok.</div>}
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {jobs.map(job => (
+                    <li key={job.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', padding: '12px 0' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 17, color: '#2563eb' }}>{job.title}</div>
+                        <div style={{ fontSize: 13, color: '#64748b' }}>Açıklama: {job.description}</div>
+                        <div style={{ fontSize: 13, color: '#64748b' }}>Atanan: {users.find(u => u.id === job.assignedTo)?.name || '-'}</div>
+                        <div style={{ fontSize: 13, color: '#64748b' }}>Birim: {units.find(u => u.id === job.unitId)?.name || '-'}</div>
+                        <div style={{ fontSize: 13, color: '#64748b' }}>Durum: {job.status}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </Box>
+            </Box>
+          )}
+// jobs modal state
+const [jobCreateOpen, setJobCreateOpen] = useState(false);
           {sidebarSection === 'units' && (
             <Box sx={{ width: '100%', maxWidth: 900, mx: 'auto', mt: 4 }}>
               <UnitList

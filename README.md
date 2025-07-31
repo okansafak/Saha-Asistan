@@ -71,4 +71,6 @@ Gerçek hash'i kendi ortamınızda üretmek için Node.js ile:
 ```js
 const bcrypt = require('bcryptjs');
 console.log(bcrypt.hashSync('superadmin123', 10));
+
+git reset --hard HEAD
 ```

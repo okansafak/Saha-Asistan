@@ -1,3 +1,12 @@
+export async function createJob(job: any) {
+  const res = await fetch(`${API_URL}/jobs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(job)
+  });
+  if (!res.ok) throw new Error('İş eklenemedi');
+  return res.json();
+}
 export async function createForm(form: any) {
   const res = await fetch(`${API_URL}/forms`, {
     method: 'POST',

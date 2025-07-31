@@ -1,12 +1,24 @@
+
 import React, { useState } from 'react';
 import type { User } from '../data/users';
 import type { Unit } from '../data/units';
-import type { FormField } from './FormBuilder';
+import type { Field } from './FormBuilder';
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
+import InputLabel from '@mui/material/InputLabel';
+import FormControl from '@mui/material/FormControl';
+import Select from '@mui/material/Select';
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox';
+import Typography from '@mui/material/Typography';
 
 interface Props {
   users: User[];
   units: Unit[];
-  forms: { id: string; title: string; fields: FormField[] }[];
+  forms: { id: string; title: string; fields: Field[] }[];
   currentUser: User;
   onCreate: (job: any) => void;
 }
@@ -41,11 +53,11 @@ const JobCreateForm: React.FC<Props> = ({ users, units, forms, currentUser, onCr
   }, [formId]);
 
   return (
-    <div className="bg-white rounded shadow p-4 mb-6">
-      <h3 className="font-bold mb-2">Yeni İş Oluştur</h3>
-      <form className="flex flex-col gap-2" onSubmit={e => {
+    <Box sx={{ bgcolor: '#fff', borderRadius: 2, boxShadow: 2, p: 4, maxWidth: 500, mx: 'auto' }}>
+      <Typography variant="h5" fontWeight={700} color="primary" mb={2}>Yeni İş Oluştur</Typography>
+      <Box component="form" display="flex" flexDirection="column" gap={2} onSubmit={e => {
         e.preventDefault();
-        if (!title || !assignedTo || !formId) return;
+        if (!title || !assignedTo || !formId || !unitId) return;
         onCreate({
           title,
           description,
@@ -67,143 +79,162 @@ const JobCreateForm: React.FC<Props> = ({ users, units, forms, currentUser, onCr
         setAddress(''); setLocation(null); setPriority('normal'); setJobType(''); setStatus('atandi');
         setCustomFields({});
       }}>
-        <input className="border p-2 rounded" placeholder="İş Başlığı" value={title} onChange={e=>setTitle(e.target.value)} />
-        <textarea className="border p-2 rounded" placeholder="Açıklama" value={description} onChange={e=>setDescription(e.target.value)} />
-        <select className="border p-2 rounded" value={formId} onChange={e=>setFormId(e.target.value)}>
-          <option value="default">Varsayılan İş Formu</option>
-          {forms.filter(f => f.id !== 'default').map(f => (
-            <option key={f.id} value={f.id}>{f.title}</option>
-          ))}
-        </select>
-
+        <TextField label="İş Başlığı" value={title} onChange={e=>setTitle(e.target.value)} required fullWidth />
+        <TextField label="Açıklama" value={description} onChange={e=>setDescription(e.target.value)} multiline minRows={2} fullWidth />
+        <FormControl required fullWidth>
+          <InputLabel>Form Seçimi</InputLabel>
+          <Select value={formId} label="Form Seçimi" onChange={e=>setFormId(e.target.value)}>
+            <MenuItem value=""><em>Form Seçiniz</em></MenuItem>
+            {forms.map(f => (
+              <MenuItem key={f.id} value={f.id}>{f.title}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
         {/* Dinamik form alanları */}
-        {formId !== 'default' && selectedForm && selectedForm.fields.map(field => {
-          const value = customFields[field.id] ?? '';
+        {formId && selectedForm && selectedForm.fields.map((field, idx) => {
+          const key = `${field.label}-${idx}`;
+          const value = customFields[field.label] ?? '';
           if (field.type === 'text' || field.type === 'number') {
             return (
-              <input
-                key={field.id}
-                className="border p-2 rounded"
-                placeholder={field.label}
+              <TextField
+                key={key}
+                label={field.label}
                 type={field.type === 'number' ? 'number' : 'text'}
                 value={value}
-                onChange={e => setCustomFields(f => ({ ...f, [field.id]: e.target.value }))}
+                onChange={e => setCustomFields(f => ({ ...f, [field.label]: e.target.value }))}
+                fullWidth
               />
             );
           }
           if (field.type === 'date' || field.type === 'time') {
             return (
-              <input
-                key={field.id}
-                className="border p-2 rounded"
-                placeholder={field.label}
+              <TextField
+                key={key}
+                label={field.label}
                 type={field.type}
                 value={value}
-                onChange={e => setCustomFields(f => ({ ...f, [field.id]: e.target.value }))}
+                onChange={e => setCustomFields(f => ({ ...f, [field.label]: e.target.value }))}
+                fullWidth
               />
             );
           }
           if (field.type === 'select' || field.type === 'radio') {
             return (
-              <select
-                key={field.id}
-                className="border p-2 rounded"
-                value={value}
-                onChange={e => setCustomFields(f => ({ ...f, [field.id]: e.target.value }))}
-              >
-                <option value="">{field.label}</option>
-                {field.options?.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
+              <FormControl key={key} fullWidth>
+                <InputLabel>{field.label}</InputLabel>
+                <Select
+                  value={value}
+                  label={field.label}
+                  onChange={e => setCustomFields(f => ({ ...f, [field.label]: e.target.value }))}
+                >
+                  <MenuItem value=""><em>{field.label}</em></MenuItem>
+                  {field.options?.map((opt: any) => (
+                    <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             );
           }
           if (field.type === 'checkbox') {
             return (
-              <div key={field.id} className="flex flex-col gap-1">
-                <span className="text-xs font-semibold">{field.label}</span>
-                {field.options?.map(opt => (
-                  <label key={opt} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={Array.isArray(value) ? value.includes(opt) : false}
-                      onChange={e => {
-                        setCustomFields(f => {
-                          const arr = Array.isArray(f[field.id]) ? f[field.id] : [];
-                          if (e.target.checked) return { ...f, [field.id]: [...arr, opt] };
-                          return { ...f, [field.id]: arr.filter((v: string) => v !== opt) };
-                        });
-                      }}
-                    />
-                    <span>{opt}</span>
-                  </label>
+              <FormGroup key={key} sx={{ pl: 1 }}>
+                <Typography fontWeight={600} fontSize={14}>{field.label}</Typography>
+                {field.options?.map((opt: any) => (
+                  <FormControlLabel
+                    key={opt}
+                    control={
+                      <Checkbox
+                        checked={Array.isArray(value) ? value.includes(opt) : false}
+                        onChange={e => {
+                          setCustomFields(f => {
+                            const arr = Array.isArray(f[field.label]) ? f[field.label] : [];
+                            if (e.target.checked) return { ...f, [field.label]: [...arr, opt] };
+                            return { ...f, [field.label]: arr.filter((v: string) => v !== opt) };
+                          });
+                        }}
+                      />
+                    }
+                    label={opt}
+                  />
                 ))}
-              </div>
+              </FormGroup>
             );
           }
           if (field.type === 'yesno') {
             return (
-              <select
-                key={field.id}
-                className="border p-2 rounded"
-                value={value}
-                onChange={e => setCustomFields(f => ({ ...f, [field.id]: e.target.value }))}
-              >
-                <option value="">{field.label}</option>
-                <option value="evet">Evet</option>
-                <option value="hayir">Hayır</option>
-              </select>
+              <FormControl key={key} fullWidth>
+                <InputLabel>{field.label}</InputLabel>
+                <Select
+                  value={value}
+                  label={field.label}
+                  onChange={e => setCustomFields(f => ({ ...f, [field.label]: e.target.value }))}
+                >
+                  <MenuItem value=""><em>Seçiniz</em></MenuItem>
+                  <MenuItem value="evet">Evet</MenuItem>
+                  <MenuItem value="hayir">Hayır</MenuItem>
+                </Select>
+              </FormControl>
             );
           }
           // photo, signature, rating gibi alanlar için placeholder
           return (
-            <div key={field.id} className="text-xs text-gray-400 italic">{field.label} ({field.type}) alanı desteklenmiyor</div>
+            <Typography key={key} fontSize={12} color="text.secondary" fontStyle="italic">{field.label} ({field.type}) alanı desteklenmiyor</Typography>
           );
         })}
-
-        {/* Default alanlar */}
-        <input className="border p-2 rounded" placeholder="Adres" value={address} onChange={e=>setAddress(e.target.value)} />
-        <div className="flex gap-2 items-center">
-          <button type="button" className="border px-2 py-1 rounded bg-gray-100" onClick={handleSelectLocation}>Haritadan Konum Seç</button>
-          {location && <span className="text-xs text-gray-600">Lat: {location.lat}, Lon: {location.lon}</span>}
-        </div>
-        <select className="border p-2 rounded" value={priority} onChange={e=>setPriority(e.target.value as any)}>
-          <option value="acil">Acil</option>
-          <option value="normal">Normal</option>
-          <option value="dusuk">Düşük</option>
-        </select>
-        <select className="border p-2 rounded" value={status} onChange={e=>setStatus(e.target.value as any)}>
-          <option value="atandi">Atandı</option>
-          <option value="basladi">Başlandı</option>
-          <option value="devam">Devam Ediyor</option>
-          <option value="tamamlandi">Tamamlandı</option>
-          <option value="beklemede">Beklemede</option>
-          <option value="iptal">İptal</option>
-        </select>
-        <input className="border p-2 rounded" placeholder="İş Türü (örn. Rutin Bakım, Arıza)" value={jobType} onChange={e=>setJobType(e.target.value)} />
-        <select className="border p-2 rounded" value={unitId} onChange={e=>setUnitId(e.target.value)}>
-          <option value="">Birim Seç</option>
-          {units.map(u=>(<option key={u.id} value={u.id}>{u.name}</option>))}
-        </select>
-        <select className="border p-2 rounded" value={assignedTo} onChange={e=>setAssignedTo(e.target.value)}>
-          <option value="">Kişi Seç</option>
-          {users
-            .filter(u => {
-              if (!unitId) return true;
-              // user.unit birim id'si olmalı, fallback olarak birim adı da kontrol edilir
-              const unitMatch = u.unit === unitId;
-              // Ayrıca birim adı ile id eşleşmesi de kontrol edilebilir (eski veriler için)
-              const unitObj = units.find(x => x.id === unitId);
-              const nameMatch = unitObj && u.unit === unitObj.name;
-              return unitMatch || nameMatch;
-            })
-            .map(u => (
-              <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-            ))}
-        </select>
-        <button className="bg-blue-600 text-white py-2 rounded mt-2" type="submit">İşi Oluştur</button>
-      </form>
-    </div>
+        <TextField label="Adres" value={address} onChange={e=>setAddress(e.target.value)} fullWidth />
+        <Box display="flex" gap={2} alignItems="center">
+          <Button variant="outlined" onClick={handleSelectLocation}>Haritadan Konum Seç</Button>
+          {location && <Typography fontSize={13} color="text.secondary">Lat: {location.lat}, Lon: {location.lon}</Typography>}
+        </Box>
+        <FormControl fullWidth>
+          <InputLabel>Öncelik</InputLabel>
+          <Select value={priority} label="Öncelik" onChange={e=>setPriority(e.target.value as any)}>
+            <MenuItem value="acil">Acil</MenuItem>
+            <MenuItem value="normal">Normal</MenuItem>
+            <MenuItem value="dusuk">Düşük</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl fullWidth>
+          <InputLabel>Durum</InputLabel>
+          <Select value={status} label="Durum" onChange={e=>setStatus(e.target.value as any)}>
+            <MenuItem value="atandi">Atandı</MenuItem>
+            <MenuItem value="basladi">Başlandı</MenuItem>
+            <MenuItem value="devam">Devam Ediyor</MenuItem>
+            <MenuItem value="tamamlandi">Tamamlandı</MenuItem>
+            <MenuItem value="beklemede">Beklemede</MenuItem>
+            <MenuItem value="iptal">İptal</MenuItem>
+          </Select>
+        </FormControl>
+        <TextField label="İş Türü" placeholder="İş Türü (örn. Rutin Bakım, Arıza)" value={jobType} onChange={e=>setJobType(e.target.value)} fullWidth />
+        <FormControl required fullWidth>
+          <InputLabel>Birim</InputLabel>
+          <Select value={unitId} label="Birim" onChange={e=>setUnitId(e.target.value)}>
+            <MenuItem value=""><em>Birim Seç</em></MenuItem>
+            {units.map(u=>(<MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>))}
+          </Select>
+        </FormControl>
+        <FormControl required fullWidth>
+          <InputLabel>Atanacak Kişi</InputLabel>
+          <Select value={assignedTo} label="Atanacak Kişi" onChange={e=>setAssignedTo(e.target.value)}>
+            <MenuItem value=""><em>Kişi Seç</em></MenuItem>
+            {users
+              .filter(u => {
+                if (!unitId) return true;
+                // user.unit birim id'si olmalı, fallback olarak birim adı da kontrol edilir
+                const unitMatch = u.unit === unitId;
+                // Ayrıca birim adı ile id eşleşmesi de kontrol edilebilir (eski veriler için)
+                const unitObj = units.find(x => x.id === unitId);
+                const nameMatch = unitObj && u.unit === unitObj.name;
+                return unitMatch || nameMatch;
+              })
+              .map(u => (
+                <MenuItem key={u.id} value={u.id}>{u.name} ({u.role})</MenuItem>
+              ))}
+          </Select>
+        </FormControl>
+        <Button variant="contained" color="primary" type="submit" sx={{ fontWeight: 700, mt: 1 }}>İşi Oluştur</Button>
+      </Box>
+    </Box>
   );
 };
 
