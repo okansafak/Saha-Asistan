@@ -201,6 +201,25 @@ Bu proje MIT lisansı altında lisanslanmıştır.
 
 ---
 
+## 🏢 Birim Yapısı
+
+Uygulama hiyerarşik birim yapısını destekler. Birimler ve alt birimler aşağıdaki gibi dallanarak görüntülenir:
+
+```
+📁 birim 1
+├── 📁 birim 2 a
+├── 📁 birim 2 b
+📁 birim 3
+├── 📁 birim 3 a
+📁 birim 5
+```
+
+Bu yapı sayesinde:
+- **Üst birimler** alt birimlerini yönetebilir
+- **İş atamaları** birim hiyerarşisine uygun yapılır
+- **Yetki yönetimi** birim bazlı çalışır
+- **Raporlama** birim dallanmasına göre yapılır
+
 ### Superadmin Kullanıcısı Oluşturma (Güvenli Şifre ile)
 
 Aşağıdaki komut ile bcrypt ile hashlenmiş şifreyle superadmin ekleyebilirsiniz:
@@ -223,4 +242,3 @@ Gerçek hash'i kendi ortamınızda üretmek için Node.js ile:
 const bcrypt = require('bcryptjs');
 console.log(bcrypt.hashSync('superadmin123', 10));
 ```
-git reset --hard HEAD

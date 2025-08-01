@@ -204,16 +204,24 @@ function App() {
                 units={units}
                 onAddUnit={async (unit: Partial<Unit>) => {
                   try {
+                    console.log('Alt birim ekleniyor:', unit);
                     const newUnit = await addUnit(unit as any);
+                    console.log('Yeni birim eklendi:', newUnit);
                     setUnits(prev => [...prev, newUnit]);
-                  } catch (e) {}
+                  } catch (e) {
+                    console.error('Birim ekleme hatası:', e);
+                  }
                 }}
                 onEditUnit={async (unit: Unit) => {
                   try {
+                    console.log('Birim düzenleniyor:', unit);
                     // updateUnit fonksiyonu ile backend'e gönder
                     const updated = await (await import('./services/unitApi')).updateUnit(unit.id, unit);
+                    console.log('Birim güncellendi:', updated);
                     setUnits(prev => prev.map(u => u.id === unit.id ? updated : u));
-                  } catch (e) {}
+                  } catch (e) {
+                    console.error('Birim düzenleme hatası:', e);
+                  }
                 }}
                 onDeleteUnitSuccess={async () => {
                   const updated = await (await import('./services/unitApi')).fetchUnits();

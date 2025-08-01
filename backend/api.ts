@@ -28,8 +28,14 @@ export function createApiRouter(client: Client) {
   // Birim güncelle
   router.put('/units/:id', async (req, res) => {
     const { id } = req.params;
-    const { name, parentId } = req.body;
+    const { name, parentId, parent_id } = req.body;
     if (!name) return res.status(400).json({ error: 'Birim adı zorunlu' });
+    
+    // Frontend'den parent_id veya parentId gelebilir
+    const actualParentId = parent_id || parentId;
+    
+    console.log('Birim güncelleme isteği:', { id, name, parentId, parent_id, actualParentId });
+    
     try {
       // Aynı isimde başka bir birim var mı (bu id hariç)
       const exists = await client.query('SELECT id FROM units WHERE LOWER(name) = LOWER($1) AND id <> $2', [name, id]);
@@ -38,14 +44,16 @@ export function createApiRouter(client: Client) {
       }
       const result = await client.query(
         'UPDATE units SET name = $1, parent_id = $2 WHERE id = $3 RETURNING *',
-        [name, parentId || null, id]
+        [name, actualParentId || null, id]
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Birim bulunamadı' });
       }
+      console.log('Birim güncellendi:', result.rows[0]);
       res.json(result.rows[0]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      console.error('Birim güncelleme hatası:', msg);
       res.status(500).json({ error: 'Birim güncellenemedi', details: msg });
     }
   });
@@ -273,14 +281,20 @@ export function createApiRouter(client: Client) {
 
   // Birimler
   router.get('/units', async (req, res) => {
-    const result = await client.query('SELECT * FROM units');
+    const result = await client.query('SELECT * FROM units ORDER BY name ASC');
     res.json(result.rows);
   });
 
   // Birim ekle
   router.post('/units', async (req, res) => {
-    const { name, parentId } = req.body;
+    const { name, parentId, parent_id } = req.body;
     if (!name) return res.status(400).json({ error: 'Birim adı zorunlu' });
+    
+    // Frontend'den parent_id veya parentId gelebilir
+    const actualParentId = parent_id || parentId;
+    
+    console.log('Birim ekleme isteği:', { name, parentId, parent_id, actualParentId });
+    
     try {
       // Aynı isimde birim var mı kontrolü
       const exists = await client.query('SELECT id FROM units WHERE LOWER(name) = LOWER($1)', [name]);
@@ -289,11 +303,13 @@ export function createApiRouter(client: Client) {
       }
       const result = await client.query(
         'INSERT INTO units (name, parent_id) VALUES ($1, $2) RETURNING *',
-        [name, parentId || null]
+        [name, actualParentId || null]
       );
+      console.log('Yeni birim eklendi:', result.rows[0]);
       res.status(201).json(result.rows[0]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      console.error('Birim ekleme hatası:', msg);
       res.status(500).json({ error: 'Birim eklenemedi', details: msg });
     }
   });
