@@ -161,57 +161,83 @@ export function createApiRouter(client: Client) {
     // Zorunlu alanlar
     const { first_name, last_name, unit_id, username, password, role } = req.body;
     if (!first_name || !last_name || !unit_id || !username || !password || !role) {
-      return res.status(400).json({ error: 'first_name, last_name, unit_id, username, password ve role zorunludur' });
+      return res.status(400).json({ error: 'Ad, Soyad, Birim, Kullanıcı Adı, Şifre ve Rol zorunludur' });
     }
+
+    // Şifre en az 6 karakter olmalı
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Şifre en az 6 karakter olmalıdır' });
+    }
+
+    // Email format kontrolü (varsa)
+    if (req.body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(req.body.email)) {
+      return res.status(400).json({ error: 'Geçerli bir e-posta adresi giriniz' });
+    }
+
     try {
       // unit_id'nin geçerli olup olmadığını kontrol et
       const unitRes = await client.query('SELECT id FROM units WHERE id = $1', [unit_id]);
       if (unitRes.rows.length === 0) {
-        return res.status(400).json({ error: `Geçerli bir birim bulunamadı: '${unit_id}'` });
+        return res.status(400).json({ error: `Geçersiz birim seçimi: ID ${unit_id} bulunamadı` });
       }
-      // Aynı isim ve birimde kullanıcı var mı kontrolü
-      const exists = await client.query('SELECT id FROM users WHERE LOWER(first_name) = LOWER($1) AND LOWER(last_name) = LOWER($2) AND unit_id = $3', [first_name, last_name, unit_id]);
-      if (exists.rows.length > 0) {
-        return res.status(409).json({ error: 'Bu birimde aynı ad ve soyad ile kullanıcı zaten var' });
-      }
-      // Duplicate check for username
-      const existingUsername = await client.query('SELECT * FROM users WHERE username = $1', [username]);
+
+      // Username benzersizlik kontrolü
+      const existingUsername = await client.query('SELECT id FROM users WHERE LOWER(username) = LOWER($1)', [username]);
       if (existingUsername.rows.length > 0) {
         return res.status(409).json({ error: 'Bu kullanıcı adı zaten kullanılıyor' });
       }
-      // Hash password
-      const bcrypt = require('bcryptjs');
+
+      // Email benzersizlik kontrolü (varsa)
+      if (req.body.email) {
+        const existingEmail = await client.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [req.body.email]);
+        if (existingEmail.rows.length > 0) {
+          return res.status(409).json({ error: 'Bu e-posta adresi zaten kullanılıyor' });
+        }
+      }
+
+      // Şifreyi hashle
       const password_hash = await bcrypt.hash(password, 10);
 
       // Tüm alanları topla
-      const fields = ['first_name', 'last_name', 'unit_id', 'username', 'password_hash', 'role'];
-      const values = [first_name, last_name, unit_id, username, password_hash, role];
+      const now = new Date().toISOString();
+      const fields = ['first_name', 'last_name', 'unit_id', 'username', 'password_hash', 'role', 'created_at', 'updated_at'];
+      const values = [first_name, last_name, parseInt(unit_id), username, password_hash, role, now, now];
+      
+      // Opsiyonel alanları ekle
       const optionalMap = {
         display_name: req.body.display_name,
         phone: req.body.phone,
         email: req.body.email,
         gender: req.body.gender,
-        birth_date: req.body.birth_date,
+        birth_date: req.body.birth_date || null,
         profile_image_base64: req.body.profile_image_base64,
-        social_media: req.body.social_media,
+        social_media: req.body.social_media ? JSON.stringify(req.body.social_media) : null,
         address: req.body.address,
         notes: req.body.notes,
-        is_active: req.body.is_active
+        is_active: req.body.is_active !== undefined ? req.body.is_active : true
       };
+
       Object.entries(optionalMap).forEach(([key, val]) => {
-        if (val !== undefined) {
+        if (val !== undefined && val !== null && val !== '') {
           fields.push(key);
           values.push(val);
         }
       });
 
       const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
+
       const result = await client.query(
         `INSERT INTO users (${fields.join(', ')}) VALUES (${placeholders}) RETURNING *`,
         values
       );
-      res.status(201).json(result.rows[0]);
+
+      const newUser = result.rows[0];
+      // Şifreyi response'dan çıkar
+      delete newUser.password_hash;
+      
+      res.status(201).json(newUser);
     } catch (err) {
+      console.error('Kullanıcı ekleme hatası:', err);
       const msg = err instanceof Error ? err.message : String(err);
       res.status(500).json({ error: 'Kullanıcı eklenemedi', details: msg });
     }

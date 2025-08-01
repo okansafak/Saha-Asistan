@@ -21,6 +21,16 @@ interface UserTableProps {
 
 const columns = [
   { key: 'profileImageBase64', label: 'Profil Resmi' },
+  { key: 'first_name', label: 'Ad' },
+  { key: 'last_name', label: 'Soyad' },
+  { key: 'displayName', label: 'Görünen Ad' },
+  { key: 'username', label: 'Kullanıcı Adı' },
+  { key: 'role', label: 'Rol' },
+  { key: 'unit', label: 'Birim' },
+  { key: 'email', label: 'E-posta' },
+  { key: 'phone', label: 'Telefon' },
+  { key: 'gender', label: 'Cinsiyet' },
+  { key: 'birthDate', label: 'Doğum Tarihi' },
   { key: 'socialMedia', label: 'Sosyal Medya' },
   { key: 'address', label: 'Adres' },
   { key: 'notes', label: 'Notlar' },
@@ -76,19 +86,53 @@ const UserTable: React.FC<UserTableProps> = ({ users, units, onEdit }) => {
   const filtered = users.filter(user =>
     columns.every(col => {
       const val =
-        col.key === 'unit'
-          ? units.find(u => u.id === (user as any).unit_id || u.id === (user as any).unit)?.name || ''
-          : col.key === 'displayName'
-          ? ((user as any).displayName || (user as any).name || '')
-          : col.key === 'isActive'
-          ? (user.isActive !== false ? 'Aktif' : 'Pasif')
-          : col.key === 'birthDate'
-          ? (user.birthDate ? new Date(user.birthDate).toLocaleDateString('tr-TR') : '')
-          : col.key === 'createdAt'
-          ? (user.createdAt ? new Date(user.createdAt).toLocaleString('tr-TR') : '')
-          : col.key === 'updatedAt'
-          ? (user.updatedAt ? new Date(user.updatedAt).toLocaleString('tr-TR') : '')
-          : (user as any)[col.key] || '';
+        col.key === 'profileImageBase64'
+        ? (user.profileImageBase64 && user.profileImageBase64 !== '-' && user.profileImageBase64.length > 10 ? 'Var' : 'Yok')
+        : col.key === 'first_name'
+        ? (user.first_name || '')
+        : col.key === 'last_name'
+        ? (user.last_name || '')
+        : col.key === 'displayName'
+        ? ((user as any).display_name || (user as any).name || user.first_name + ' ' + user.last_name || '')
+        : col.key === 'username'
+        ? (user.username || '')
+        : col.key === 'role'
+        ? (user.role || '')
+        : col.key === 'unit'
+        ? units.find(u => u.id === (user as any).unit_id || u.id === (user as any).unit)?.name || ''
+        : col.key === 'email'
+        ? (user.email || '')
+        : col.key === 'phone'
+        ? (user.phone || '')
+        : col.key === 'gender'
+        ? (user.gender ? ({'male': 'Erkek', 'female': 'Kadın', 'other': 'Diğer'} as any)[user.gender] || user.gender : '')
+        : col.key === 'birthDate'
+        ? (user.birthDate ? new Date(user.birthDate).toLocaleDateString('tr-TR') : '')
+        : col.key === 'socialMedia'
+        ? (() => {
+            let socialData: any = {};
+            try {
+              if (typeof user.socialMedia === 'string' && user.socialMedia) {
+                socialData = JSON.parse(user.socialMedia);
+              } else if (typeof user.socialMedia === 'object' && user.socialMedia) {
+                socialData = user.socialMedia;
+              }
+            } catch {
+              socialData = {};
+            }
+            return socialData.x || socialData.instagram || socialData.facebook || socialData.tiktok ? 'Var' : 'Yok';
+          })()
+        : col.key === 'address'
+        ? (user.address || '')
+        : col.key === 'notes'
+        ? (user.notes || '')
+        : col.key === 'isActive'
+        ? (user.isActive !== false || (user as any).is_active !== false ? 'Aktif' : 'Pasif')
+        : col.key === 'createdAt'
+        ? (user.createdAt || (user as any).created_at ? new Date(user.createdAt || (user as any).created_at).toLocaleString('tr-TR') : '')
+        : col.key === 'updatedAt'
+        ? (user.updatedAt || (user as any).updated_at ? new Date(user.updatedAt || (user as any).updated_at).toLocaleString('tr-TR') : '')
+        : (user as any)[col.key] || '';
       return (filters[col.key] || '').length === 0 || (val + '').toLowerCase().includes((filters[col.key] || '').toLowerCase());
     })
   );
@@ -97,18 +141,45 @@ const UserTable: React.FC<UserTableProps> = ({ users, units, onEdit }) => {
     ? [...filtered].sort((a, b) => {
         let aVal: any;
         let bVal: any;
-        if (orderBy === 'unit') {
+        if (orderBy === 'first_name') {
+          aVal = a.first_name || '';
+          bVal = b.first_name || '';
+        } else if (orderBy === 'last_name') {
+          aVal = a.last_name || '';
+          bVal = b.last_name || '';
+        } else if (orderBy === 'displayName') {
+          aVal = (a as any).display_name || (a as any).name || a.first_name + ' ' + a.last_name || '';
+          bVal = (b as any).display_name || (b as any).name || b.first_name + ' ' + b.last_name || '';
+        } else if (orderBy === 'username') {
+          aVal = a.username || '';
+          bVal = b.username || '';
+        } else if (orderBy === 'role') {
+          aVal = a.role || '';
+          bVal = b.role || '';
+        } else if (orderBy === 'unit') {
           aVal = units.find(u => u.id === (a as any).unit_id || u.id === (a as any).unit)?.name || '';
           bVal = units.find(u => u.id === (b as any).unit_id || u.id === (b as any).unit)?.name || '';
-        } else if (orderBy === 'displayName') {
-          aVal = (a as any).displayName || (a as any).name || '';
-          bVal = (b as any).displayName || (b as any).name || '';
-        } else if (orderBy === 'isActive') {
-          aVal = a.isActive !== false ? 'Aktif' : 'Pasif';
-          bVal = b.isActive !== false ? 'Aktif' : 'Pasif';
+        } else if (orderBy === 'email') {
+          aVal = a.email || '';
+          bVal = b.email || '';
+        } else if (orderBy === 'phone') {
+          aVal = a.phone || '';
+          bVal = b.phone || '';
+        } else if (orderBy === 'gender') {
+          aVal = a.gender || '';
+          bVal = b.gender || '';
         } else if (orderBy === 'birthDate') {
           aVal = a.birthDate ? new Date(a.birthDate).getTime() : 0;
           bVal = b.birthDate ? new Date(b.birthDate).getTime() : 0;
+        } else if (orderBy === 'address') {
+          aVal = a.address || '';
+          bVal = b.address || '';
+        } else if (orderBy === 'notes') {
+          aVal = a.notes || '';
+          bVal = b.notes || '';
+        } else if (orderBy === 'isActive') {
+          aVal = a.isActive !== false ? 'Aktif' : 'Pasif';
+          bVal = b.isActive !== false ? 'Aktif' : 'Pasif';
         } else if (orderBy === 'createdAt' || orderBy === 'updatedAt') {
           aVal = a[orderBy] ? new Date(a[orderBy] as any).getTime() : 0;
           bVal = b[orderBy] ? new Date(b[orderBy] as any).getTime() : 0;
@@ -169,16 +240,52 @@ const UserTable: React.FC<UserTableProps> = ({ users, units, onEdit }) => {
               {columns.map(col => {
                 let value: React.ReactNode = '-';
                 if (col.key === 'profileImageBase64') {
-                  value = user.profileImageBase64 ? (
-                    <img src={user.profileImageBase64} alt="Profil" style={{ width: 32, height: 32, borderRadius: 8 }} />
+                  const profileImg = user.profileImageBase64 || (user as any).profile_image_base64;
+                  value = profileImg && profileImg !== '-' && profileImg.length > 10 ? (
+                    <img src={profileImg} alt="Profil" style={{ width: 32, height: 32, borderRadius: 8 }} />
                   ) : '-';
+                } else if (col.key === 'first_name') {
+                  value = user.first_name || '-';
+                } else if (col.key === 'last_name') {
+                  value = user.last_name || '-';
+                } else if (col.key === 'displayName') {
+                  value = user.displayName || (user as any).display_name || (user as any).name || (user.first_name + ' ' + user.last_name).trim() || '-';
+                } else if (col.key === 'username') {
+                  value = user.username || '-';
+                } else if (col.key === 'role') {
+                  value = user.role || '-';
+                } else if (col.key === 'unit') {
+                  value = units.find(u => u.id === user.unitId || u.id === (user as any).unit_id || u.id === (user as any).unit)?.name || '-';
+                } else if (col.key === 'email') {
+                  value = user.email || '-';
+                } else if (col.key === 'phone') {
+                  value = user.phone || '-';
+                } else if (col.key === 'gender') {
+                  const genderMap = { male: 'Erkek', female: 'Kadın', other: 'Diğer' };
+                  value = user.gender ? (genderMap as any)[user.gender] || user.gender : '-';
+                } else if (col.key === 'birthDate') {
+                  const birthDate = user.birthDate || (user as any).birth_date;
+                  value = birthDate ? new Date(birthDate).toLocaleDateString('tr-TR') : '-';
                 } else if (col.key === 'socialMedia') {
-                  value = user.socialMedia && (user.socialMedia.x || user.socialMedia.instagram || user.socialMedia.facebook || user.socialMedia.tiktok) ? (
+                  let socialData: any = {};
+                  try {
+                    const socialMediaData = user.socialMedia || (user as any).social_media;
+                    if (typeof socialMediaData === 'string' && socialMediaData) {
+                      socialData = JSON.parse(socialMediaData);
+                    } else if (typeof socialMediaData === 'object' && socialMediaData) {
+                      socialData = socialMediaData;
+                    }
+                  } catch {
+                    socialData = {};
+                  }
+                  
+                  const hasAnySocial = socialData.x || socialData.instagram || socialData.facebook || socialData.tiktok;
+                  value = hasAnySocial ? (
                     <span style={{ display: 'flex', gap: 6 }}>
-                      {user.socialMedia.x && <a href={user.socialMedia.x} target="_blank" rel="noopener noreferrer" title="X">X</a>}
-                      {user.socialMedia.instagram && <a href={user.socialMedia.instagram} target="_blank" rel="noopener noreferrer" title="Instagram">IG</a>}
-                      {user.socialMedia.facebook && <a href={user.socialMedia.facebook} target="_blank" rel="noopener noreferrer" title="Facebook">FB</a>}
-                      {user.socialMedia.tiktok && <a href={user.socialMedia.tiktok} target="_blank" rel="noopener noreferrer" title="TikTok">TT</a>}
+                      {socialData.x && <a href={socialData.x} target="_blank" rel="noopener noreferrer" title="X">X</a>}
+                      {socialData.instagram && <a href={socialData.instagram} target="_blank" rel="noopener noreferrer" title="Instagram">IG</a>}
+                      {socialData.facebook && <a href={socialData.facebook} target="_blank" rel="noopener noreferrer" title="Facebook">FB</a>}
+                      {socialData.tiktok && <a href={socialData.tiktok} target="_blank" rel="noopener noreferrer" title="TikTok">TT</a>}
                     </span>
                   ) : '-';
                 } else if (col.key === 'address') {
@@ -186,11 +293,14 @@ const UserTable: React.FC<UserTableProps> = ({ users, units, onEdit }) => {
                 } else if (col.key === 'notes') {
                   value = user.notes || '-';
                 } else if (col.key === 'isActive') {
-                  value = user.isActive !== false ? 'Aktif' : 'Pasif';
+                  const isActive = user.isActive !== false || user.is_active !== false;
+                  value = isActive ? 'Aktif' : 'Pasif';
                 } else if (col.key === 'createdAt') {
-                  value = user.createdAt ? new Date(user.createdAt).toLocaleString('tr-TR') : '-';
+                  const createdAt = user.createdAt || user.created_at;
+                  value = createdAt ? new Date(createdAt).toLocaleString('tr-TR') : '-';
                 } else if (col.key === 'updatedAt') {
-                  value = user.updatedAt ? new Date(user.updatedAt).toLocaleString('tr-TR') : '-';
+                  const updatedAt = user.updatedAt || user.updated_at;
+                  value = updatedAt ? new Date(updatedAt).toLocaleString('tr-TR') : '-';
                 }
                 return <TableCell key={col.key}>{value}</TableCell>;
               })}

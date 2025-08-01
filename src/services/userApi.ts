@@ -14,7 +14,12 @@ export async function addUser(user: any) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(user),
   });
-  if (!res.ok) throw new Error('Kullanıcı eklenemedi');
+  
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Bilinmeyen hata' }));
+    throw new Error(errorData.error || `HTTP ${res.status}: Kullanıcı eklenemedi`);
+  }
+  
   return res.json();
 }
 

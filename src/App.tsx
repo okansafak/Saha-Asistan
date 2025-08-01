@@ -9,13 +9,13 @@ import JobCreateForm from './components/JobCreateForm';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 // ...existing code...
-import { DataGrid } from '@mui/x-data-grid';
 import FormBuilder from './components/FormBuilder';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import Sidebar, { type SidebarSection } from './components/Sidebar';
 import UnitList from './components/UnitList';
+import UserTable from './components/UserTable';
 
 import React from 'react';
 import MapComponent from './components/MapComponent';
@@ -33,7 +33,6 @@ import JobDelegate from './components/JobDelegate';
 import JobHistory from './components/JobHistory';
 import JobEditForm from './components/JobEditForm';
 // import UserRow from './components/UserRow';
-import { FaXTwitter, FaInstagram, FaFacebook, FaTiktok } from 'react-icons/fa6';
 import { useState } from 'react';
 import UserEditModal from './components/UserEditModal';
 import { updateUser } from './services/userApi';
@@ -58,10 +57,8 @@ function App() {
   const [units, setUnits] = React.useState<Unit[]>([]);
   // Kullanıcı ekleme dialog state
   // ...existing code...
-  // DataGrid pagination state
-  const [userTablePagination, setUserTablePagination] = React.useState<{ page: number; pageSize: number }>({ page: 0, pageSize: 10 });
   // Kullanıcı ekleme/düzenleme modal state
-  const [editUser, setEditUser] = useState<User | null | {}>(null);
+  const [editUser, setEditUser] = useState<User | null | 'new'>(null);
   // Form düzenleme için state
   const [editForm, setEditForm] = useState<any | null>(null);
 
@@ -112,102 +109,46 @@ function App() {
         >
           {sidebarSection === 'users' && (
             <Box sx={{ width: '100%', maxWidth: 1300, mx: 'auto', mt: { xs: 2, md: 4 }, position: 'relative' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <h2 style={{ fontWeight: 700, fontSize: 26, color: '#2563eb', margin: 0 }}>Kullanıcılar</h2>
-                <Button variant="contained" color="primary" onClick={() => setEditUser({})} sx={{ fontWeight: 700, borderRadius: 2, minWidth: 160, height: 44, fontSize: 16 }}>KULLANICI EKLE</Button>
-              </Box>
               {/* Çıkış butonu sabit sağ üstte */}
               <Box sx={{ position: 'fixed', top: 24, right: 32, zIndex: 2000 }}>
                 <button style={{ padding: '8px 20px', background: '#e0e7ef', borderRadius: 8, border: 0, fontWeight: 600, cursor: 'pointer', fontSize: 16, boxShadow: '0 2px 8px #0001' }} onClick={() => setCurrentUser(null)}>Çıkış</button>
               </Box>
               <Box sx={{ width: '100%', background: '#fff', borderRadius: 3, boxShadow: '0 2px 12px #0001', p: { xs: 1, md: 2 }, minWidth: 1100, maxWidth: 1300, mx: 'auto', mb: 4 }}>
-                <DataGrid
-                    rows={users.map(u => {
-                      const unitId = (u as any).unit_id || u.unit;
-                      const unitName = unitId ? (units.find(unit => unit.id === unitId)?.name || '-') : '-';
-                      let social = {};
-                      try {
-                    social = typeof u.socialMedia === 'string' ? JSON.parse(u.socialMedia) : (u.socialMedia || {});
-                      } catch { social = {}; }
-                    const hasAnySocial = !!((social as any).x || (social as any).instagram || (social as any).facebook || (social as any).tiktok);
-                    const safe = (v: any) => (v === undefined || v === null || v === '') ? '-' : v;
-                      return {
-                        id: u.id,
-                        ad: safe(u.first_name),
-                        soyad: safe(u.last_name),
-                        kullaniciAdi: safe(u.username),
-                      gorunenAd: safe(u.name),
-                        rol: safe(u.role),
-                        birim: safe(unitName),
-                        email: safe(u.email),
-                        telefon: safe(u.phone),
-                        cinsiyet: safe(u.gender),
-                      dogumTarihi: safe(u.birthDate),
-                      profilResmi: (u.profileImageBase64 && u.profileImageBase64 !== '-' && u.profileImageBase64 !== '') ? u.profileImageBase64 : '-',
-                      sosyalMedya: hasAnySocial ? social : '-',
-                        adres: safe(u.address),
-                        notlar: safe(u.notes),
-                      durum: u.isActive !== false ? 'Aktif' : 'Pasif',
-                      kayitTarihi: (u.createdAt && u.createdAt !== '-' && u.createdAt !== '' && u.createdAt !== null) ? new Date(u.createdAt).toLocaleString() : '-',
-                      guncellemeTarihi: (u.updatedAt && u.updatedAt !== '-' && u.updatedAt !== '' && u.updatedAt !== null) ? new Date(u.updatedAt).toLocaleString() : '-',
-                        actions: u,
-                      };
-                    })}
-                    columns={[
-                      { field: 'ad', headerName: 'Ad', minWidth: 100, flex: 1 },
-                      { field: 'soyad', headerName: 'Soyad', minWidth: 100, flex: 1 },
-                      { field: 'kullaniciAdi', headerName: 'Kullanıcı Adı', minWidth: 120, flex: 1 },
-                      { field: 'gorunenAd', headerName: 'Görünen Ad', minWidth: 120, flex: 1 },
-                      { field: 'rol', headerName: 'Rol', minWidth: 90, flex: 1 },
-                      { field: 'birim', headerName: 'Birim', minWidth: 120, flex: 1 },
-                      { field: 'email', headerName: 'E-posta', minWidth: 140, flex: 1 },
-                      { field: 'telefon', headerName: 'Telefon', minWidth: 100, flex: 1 },
-                      { field: 'cinsiyet', headerName: 'Cinsiyet', minWidth: 80, flex: 1 },
-                      { field: 'dogumTarihi', headerName: 'Doğum Tarihi', minWidth: 110, flex: 1 },
-                      { field: 'profilResmi', headerName: 'Profil Resmi', minWidth: 80, flex: 1, renderCell: params => params.value && params.value !== '-' ? <img src={params.value} alt="Profil" style={{ width: 32, height: 32, borderRadius: 8 }} /> : '-' },
-                      { field: 'sosyalMedya', headerName: 'Sosyal Medya', minWidth: 120, flex: 1, renderCell: params => {
-                        if (params.value === '-') return '-';
-                        const s = params.value || {};
-                        return (
-                          <span style={{ display: 'flex', gap: 6 }}>
-                            {s.x && <a href={s.x} target="_blank" rel="noopener noreferrer" title="X"><FaXTwitter /></a>}
-                            {s.instagram && <a href={s.instagram} target="_blank" rel="noopener noreferrer" title="Instagram"><FaInstagram /></a>}
-                            {s.facebook && <a href={s.facebook} target="_blank" rel="noopener noreferrer" title="Facebook"><FaFacebook /></a>}
-                            {s.tiktok && <a href={s.tiktok} target="_blank" rel="noopener noreferrer" title="TikTok"><FaTiktok /></a>}
-                          </span>
-                        );
-                      }},
-                      { field: 'adres', headerName: 'Adres', minWidth: 120, flex: 1 },
-                      { field: 'notlar', headerName: 'Notlar', minWidth: 120, flex: 1 },
-                      { field: 'durum', headerName: 'Durum', minWidth: 80, flex: 1 },
-                      { field: 'kayitTarihi', headerName: 'Kayıt Tarihi', minWidth: 140, flex: 1 },
-                      { field: 'guncellemeTarihi', headerName: 'Güncelleme Tarihi', minWidth: 140, flex: 1 },
-                      { field: 'actions', headerName: '', minWidth: 90, flex: 1, renderCell: params => <Button variant="outlined" size="small" onClick={() => setEditUser(params.value)}>Düzenle</Button> },
-                    ]}
-                    pagination
-                    paginationModel={userTablePagination}
-                    onPaginationModelChange={setUserTablePagination}
-                    pageSizeOptions={[10, 20, 50]}
-                    disableRowSelectionOnClick
-                    autoHeight
-                    sx={{ width: '100%' }}
-                  />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                  <h2 style={{ fontWeight: 700, fontSize: 26, color: '#2563eb', margin: 0 }}>Kullanıcılar</h2>
+                  <Button 
+                    variant="contained" 
+                    onClick={() => setEditUser('new')} 
+                    sx={{ fontWeight: 700, borderRadius: 2 }}
+                  >
+                    Kullanıcı Ekle
+                  </Button>
+                </Box>
+                <UserTable 
+                  users={users} 
+                  units={units} 
+                  onEdit={(user) => setEditUser(user)} 
+                />
               </Box>
               <Dialog open={editUser !== null} onClose={() => setEditUser(null)} maxWidth="md" fullWidth>
                 <DialogContent sx={{ p: 0 }}>
                   <UserEditModal
-                    user={editUser}
+                    user={editUser === 'new' ? null : editUser}
                     units={units}
                     onClose={() => setEditUser(null)}
                     onSave={async (userData) => {
-                      if (editUser && typeof editUser === 'object' && 'id' in editUser && editUser.id) {
-                        await updateUser(editUser.id, userData);
-                      } else {
-                        await addUser(userData);
+                      try {
+                        if (editUser && typeof editUser === 'object' && 'id' in editUser && editUser.id) {
+                          await updateUser(editUser.id, userData);
+                        } else {
+                          await addUser(userData);
+                        }
+                        const updated = await fetchUsers();
+                        setUsers(updated);
+                        setEditUser(null);
+                      } catch (error) {
+                        alert(`Hata: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
                       }
-                      const updated = await fetchUsers();
-                      setUsers(updated);
-                      setEditUser(null);
                     }}
                   />
                 </DialogContent>
@@ -256,8 +197,6 @@ function App() {
               </Box>
             </Box>
           )}
-// jobs modal state
-const [jobCreateOpen, setJobCreateOpen] = useState(false);
           {sidebarSection === 'units' && (
             <Box sx={{ width: '100%', maxWidth: 900, mx: 'auto', mt: 4 }}>
               <UnitList
